@@ -26,9 +26,7 @@ async function initializeDatabase(): Promise<Database> {
 
   console.log('Initializing database connection...');
 
-  const dbPath = process.env.NODE_ENV === 'production' 
-    ? path.join(process.cwd(), 'heavy_analysis.db')
-    : path.join(process.cwd(), '..', 'heavy_analysis.db');
+  const dbPath = path.join(process.cwd(), 'heavy_analysis.db');
 
   try {
     db = await open({
