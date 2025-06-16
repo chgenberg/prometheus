@@ -12,7 +12,7 @@ export async function getHeavyDb(): Promise<Database> {
 
   console.log('Initializing heavy database connection...');
   
-  const dbPath = path.join(process.cwd(), 'heavy_analysis.db');
+  const dbPath = path.join(process.cwd(), 'frontend', 'heavy_analysis.db');
   
   try {
     const db = await open({ // Skapa en ny anslutning varje gång
