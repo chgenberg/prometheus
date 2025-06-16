@@ -75,3 +75,4 @@ api-keys.txt
 # Backup files
 *.backup
 *_backup_* 
+.vercel

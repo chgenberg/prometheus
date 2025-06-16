@@ -45,23 +45,19 @@ async function getCoinpokerPlayersFromTurso() {
   
   const query = `
     SELECT 
-      m.player_id,
-      m.total_hands,
-      m.net_win_bb,
-      v.vpip,
-      v.pfr,
-      ps.avg_score as avg_postflop_score,
-      pr.avg_score as avg_preflop_score,
-      ai.intention_score,
-      ai.collution_score,
-      ai.bad_actor_score
-    FROM main m
-    LEFT JOIN vpip_pfr v ON m.player_id = v.player_id
-    LEFT JOIN postflop_scores ps ON m.player_id = ps.player_id
-    LEFT JOIN preflop_scores pr ON m.player_id = pr.player_id
-    LEFT JOIN ai_scores ai ON m.player_id = ai.player_id
-    WHERE m.player_id LIKE 'CoinPoker%'
-    ORDER BY m.total_hands DESC
+      player_id,
+      total_hands,
+      net_win_bb,
+      vpip,
+      pfr,
+      avg_postflop_score,
+      avg_preflop_score,
+      intention_score,
+      collution_score,
+      bad_actor_score
+    FROM main
+    WHERE player_id LIKE 'CoinPoker%'
+    ORDER BY total_hands DESC
   `;
   
   try {
@@ -70,16 +66,16 @@ async function getCoinpokerPlayersFromTurso() {
     
     // Convert Turso result format to match expected format
     return result.rows.map((row: any) => ({
-      player_id: row[0] || row.player_id,
-      total_hands: row[1] || row.total_hands || 0,
-      net_win_bb: row[2] || row.net_win_bb || 0,
-      vpip: row[3] || row.vpip || 0,
-      pfr: row[4] || row.pfr || 0,
-      avg_postflop_score: row[5] || row.avg_postflop_score || 0,
-      avg_preflop_score: row[6] || row.avg_preflop_score || 0,
-      intention_score: row[7] || row.intention_score || 0,
-      collution_score: row[8] || row.collution_score || 0,
-      bad_actor_score: row[9] || row.bad_actor_score || 0,
+      player_id: row.player_id,
+      total_hands: row.total_hands || 0,
+      net_win_bb: row.net_win_bb || 0,
+      vpip: row.vpip || 0,
+      pfr: row.pfr || 0,
+      avg_postflop_score: row.avg_postflop_score || 0,
+      avg_preflop_score: row.avg_preflop_score || 0,
+      intention_score: row.intention_score || 0,
+      collution_score: row.collution_score || 0,
+      bad_actor_score: row.bad_actor_score || 0,
     }));
   } catch (error) {
     console.error('Error fetching players from Turso:', error);

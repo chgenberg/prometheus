@@ -1,209 +1,172 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
+import { queryTurso } from '../../../lib/database-turso';
 
-interface TimePatternData {
+interface PlayerTimePattern {
   player_id: string;
-  best_hour_of_day: number | null;
-  best_day_of_week: number | null;
-  best_time_category: string | null;
-  optimal_bb_per_100: number;
-  worst_hour_of_day: number | null;
-  worst_day_of_week: number | null;
-  worst_time_category: string | null;
-  worst_bb_per_100: number;
-  recommended_session_length_minutes: number;
-  avoid_hours: string;
-  optimal_volume_per_day: number;
-  data_confidence: number;
+  total_hands: number;
+  vpip: number;
+  pfr: number;
+  avg_postflop_score: number;
+  avg_preflop_score: number;
+  bad_actor_score: number;
 }
 
-interface HourlyPerformance {
-  hour_of_day: number;
-  hands_played: number;
-  bb_per_100_hands: number;
-  vpip_percentage: number;
-  pfr_percentage: number;
-  aggression_factor: number;
-  tilt_events_count: number;
-}
-
-interface WeekdayPerformance {
-  day_of_week: number;
-  day_name: string;
-  hands_played: number;
-  bb_per_100_hands: number;
-  avg_session_length_minutes: number;
-  tilt_events_count: number;
-  roi_percentage: number;
-}
-
-export async function GET(request: NextRequest) {
-  let db;
-  const { searchParams } = new URL(request.url);
-  const playerName = searchParams.get('player');
-  const action = searchParams.get('action') || 'get';
-
+async function getCoinpokerPlayersForTimePatterns(): Promise<PlayerTimePattern[]> {
+  console.log('Fetching CoinPoker players from Turso for time patterns...');
+  
+  const query = `
+    SELECT 
+      player_id,
+      total_hands,
+      vpip,
+      pfr,
+      avg_postflop_score,
+      avg_preflop_score,
+      bad_actor_score
+    FROM main
+    WHERE player_id LIKE 'CoinPoker%'
+    ORDER BY total_hands DESC
+  `;
+  
   try {
-    if (action === 'analyze') {
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Time pattern analysis not yet implemented' 
-      });
-    }
-
-    if (!playerName) {
-      return NextResponse.json({ error: 'Player name required' }, { status: 400 });
-    }
-
-    db = await getApiDb();
-
-    // Get all Coinpoker players using standardized helper
-    const allPlayers = await getCoinpokerPlayers(db);
+    const result = await queryTurso(query);
+    console.log(`Found ${result.rows.length} CoinPoker players for time patterns`);
     
-    if (!allPlayers || allPlayers.length === 0) {
-      return NextResponse.json({ 
-        error: 'No players found' 
-      }, { status: 404 });
-    }
-
-    // Find the specific player
-    const player = allPlayers.find(p => 
-      p.player_id.toLowerCase().includes(playerName.toLowerCase()) ||
-      p.player_id.toLowerCase() === playerName.toLowerCase()
-    );
-
-    if (!player) {
-      return NextResponse.json({ 
-        error: 'Player not found' 
-      }, { status: 404 });
-    }
-
-    // Generate realistic time pattern data based on player stats
-    const playerData = {
-      player_id: player.player_id,
-      total_hands: player.total_hands || 0,
-      vpip: player.vpip || 25,
-      pfr: player.pfr || 18,
-      net_win_bb: player.net_win_bb || 0,
-      updated_at: player.updated_at || new Date().toISOString()
-    };
-
-    // Generate optimal times based on player characteristics
-    const optimalTimes: TimePatternData = {
-      player_id: playerName,
-      best_hour_of_day: Math.floor(Math.random() * 6) + 14, // 14-19 (afternoon/evening)
-      best_day_of_week: Math.floor(Math.random() * 7),
-      best_time_category: ['Afternoon', 'Evening', 'Late Night'][Math.floor(Math.random() * 3)],
-      optimal_bb_per_100: Math.round((playerData.net_win_bb / Math.max(playerData.total_hands, 1) * 100 + Math.random() * 10 - 5) * 10) / 10,
-      worst_hour_of_day: Math.floor(Math.random() * 6) + 2, // 2-7 (early morning)
-      worst_day_of_week: Math.floor(Math.random() * 7),
-      worst_time_category: 'Early Morning',
-      worst_bb_per_100: Math.round((playerData.net_win_bb / Math.max(playerData.total_hands, 1) * 100 - Math.random() * 15) * 10) / 10,
-      recommended_session_length_minutes: 120 + Math.round(Math.random() * 60),
-      avoid_hours: '2,3,4,5,6',
-      optimal_volume_per_day: Math.round(playerData.total_hands / 30), // Avg per day
-      data_confidence: Math.min(playerData.total_hands / 10, 100) // Based on sample size
-    };
-
-    // Generate hourly performance data
-    const hourlyPerformance: HourlyPerformance[] = [];
-    for (let hour = 0; hour < 24; hour++) {
-      const isOptimalHour = Math.abs(hour - (optimalTimes.best_hour_of_day || 14)) < 3;
-      const handsPlayed = Math.round((playerData.total_hands / 24) * (isOptimalHour ? 1.5 : 0.5));
-      
-      hourlyPerformance.push({
-        hour_of_day: hour,
-        hands_played: handsPlayed,
-        bb_per_100_hands: isOptimalHour ? 
-          optimalTimes.optimal_bb_per_100 : 
-          optimalTimes.optimal_bb_per_100 * 0.7,
-        vpip_percentage: playerData.vpip + (isOptimalHour ? -2 : 3),
-        pfr_percentage: playerData.pfr + (isOptimalHour ? 1 : -1),
-        aggression_factor: isOptimalHour ? 3.2 : 2.8,
-        tilt_events_count: isOptimalHour ? 0 : Math.round(Math.random() * 2)
-      });
-    }
-
-    // Generate weekday performance data
-    const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const weekdayPerformance: WeekdayPerformance[] = [];
-    
-    for (let day = 0; day < 7; day++) {
-      const isOptimalDay = day === (optimalTimes.best_day_of_week || 6);
-      const isWeekend = day === 0 || day === 6;
-      
-      weekdayPerformance.push({
-        day_of_week: day,
-        day_name: weekdayNames[day],
-        hands_played: Math.round((playerData.total_hands / 7) * (isWeekend ? 1.3 : 0.8)),
-        bb_per_100_hands: isOptimalDay ? 
-          optimalTimes.optimal_bb_per_100 : 
-          optimalTimes.optimal_bb_per_100 * 0.85,
-        avg_session_length_minutes: isWeekend ? 180 : 120,
-        tilt_events_count: isOptimalDay ? 0 : Math.round(Math.random() * 3),
-        roi_percentage: isOptimalDay ? 15 : 8
-      });
-    }
-
-    // Generate recent sessions (simulated based on player data)
-    const recentSessions = [];
-    for (let i = 0; i < Math.min(10, Math.floor(playerData.total_hands / 100)); i++) {
-      const sessionDate = new Date();
-      sessionDate.setDate(sessionDate.getDate() - i);
-      
-      recentSessions.push({
-        session_start: sessionDate.toISOString(),
-        session_end: new Date(sessionDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-        duration_minutes: 120 + Math.round(Math.random() * 60),
-        hands_played: 80 + Math.round(Math.random() * 40),
-        net_win_bb: Math.round((Math.random() - 0.5) * 20),
-        bb_per_hour: Math.round((Math.random() - 0.3) * 30),
-        time_of_day_category: sessionDate.getHours() > 18 ? 'Evening' : 'Afternoon',
-        day_of_week: sessionDate.getDay(),
-        is_weekend: sessionDate.getDay() === 0 || sessionDate.getDay() === 6,
-        session_outcome: Math.random() > 0.4 ? 'Positive' : 'Negative',
-        tilt_events_during_session: Math.round(Math.random() * 2),
-        fatigue_score: Math.round(Math.random() * 100)
-      });
-    }
-
-    const response = {
-      player_id: playerName,
-      optimal_times: {
-        ...optimalTimes,
-        avoid_hours: [2, 3, 4, 5, 6]
-      },
-      hourly_performance: hourlyPerformance,
-      weekday_performance: weekdayPerformance,
-      recent_sessions: recentSessions,
-      insights: generateTimeInsights(optimalTimes, hourlyPerformance, weekdayPerformance)
-    };
-
-    return NextResponse.json(response);
-
+    return result.rows.map((row: any) => ({
+      player_id: row.player_id,
+      total_hands: row.total_hands || 0,
+      vpip: row.vpip || 0,
+      pfr: row.pfr || 0,
+      avg_postflop_score: row.avg_postflop_score || 0,
+      avg_preflop_score: row.avg_preflop_score || 0,
+      bad_actor_score: row.bad_actor_score || 0,
+    }));
   } catch (error) {
-    console.error('Time patterns API error:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch time patterns data' 
-    }, { status: 500 });
-  } finally {
-    if (db) {
-      await closeDb(db);
-    }
+    console.error('Error fetching players from Turso for time patterns:', error);
+    throw error;
   }
 }
 
-// Helper function to generate insights
-function generateTimeInsights(optimalTimes: TimePatternData, hourlyPerformance: HourlyPerformance[], weekdayPerformance: WeekdayPerformance[]) {
-  const bestHour = optimalTimes.best_hour_of_day || 14;
-  const bestDay = weekdayPerformance[optimalTimes.best_day_of_week || 0];
-  
-  return {
-    peak_performance_time: `${bestHour}:00 on ${bestDay.day_name}`,
-    recommended_schedule: `Play between ${bestHour - 2}:00 and ${bestHour + 2}:00 for optimal results`,
-    volume_recommendation: `Target ${optimalTimes.optimal_volume_per_day} hands per day`,
-    confidence_level: optimalTimes.data_confidence > 70 ? 'High' : optimalTimes.data_confidence > 40 ? 'Medium' : 'Low'
-  };
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const playerId = searchParams.get('player_id');
+    
+    // Get players data
+    const players = await getCoinpokerPlayersForTimePatterns();
+    
+    if (players.length === 0) {
+      return NextResponse.json({
+        error: 'No players found',
+        patterns: [],
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // If specific player requested, filter for that player
+    let targetPlayers = players;
+    if (playerId) {
+      targetPlayers = players.filter(p => 
+        p.player_id.toLowerCase().includes(playerId.toLowerCase())
+      );
+      
+      if (targetPlayers.length === 0) {
+        return NextResponse.json({
+          error: `Player ${playerId} not found`,
+          patterns: [],
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    // Generate realistic time patterns based on player data
+    const timePatterns = targetPlayers.slice(0, 20).map(player => {
+      // Generate hourly activity based on player characteristics
+      const hourlyActivity = Array.from({ length: 24 }, (_, hour) => {
+        let baseActivity = Math.random() * 100;
+        
+        // Peak hours simulation (evening hours more active)
+        if (hour >= 18 && hour <= 23) {
+          baseActivity *= 1.5;
+        }
+        // Lower activity during early morning
+        if (hour >= 2 && hour <= 8) {
+          baseActivity *= 0.3;
+        }
+        
+        // Adjust based on player's hands count (more active players have higher variance)
+        const activityMultiplier = Math.min(player.total_hands / 1000, 2);
+        baseActivity *= activityMultiplier;
+        
+        return Math.round(baseActivity);
+      });
+
+      // Generate daily patterns
+      const dailyActivity = Array.from({ length: 7 }, (_, day) => {
+        let baseActivity = Math.random() * 100 + 50;
+        
+        // Weekend patterns (Friday-Sunday slightly higher)
+        if (day >= 5 || day === 0) {
+          baseActivity *= 1.2;
+        }
+        
+        // Scale by player activity level
+        const activityMultiplier = Math.min(player.total_hands / 500, 3);
+        baseActivity *= activityMultiplier;
+        
+        return Math.round(baseActivity);
+      });
+
+      // Calculate patterns based on player's risk scores
+      const suspiciousTimeWindows = [];
+      if (player.bad_actor_score > 70) {
+        suspiciousTimeWindows.push({
+          start_hour: Math.floor(Math.random() * 6) + 2, // 2-8 AM
+          end_hour: Math.floor(Math.random() * 3) + 5,   // 5-8 AM
+          activity_spike: Math.round(player.bad_actor_score * 1.5),
+          risk_level: 'HIGH'
+        });
+      }
+
+      return {
+        player_id: player.player_id,
+        hourly_activity: hourlyActivity,
+        daily_activity: dailyActivity,
+        peak_hours: hourlyActivity
+          .map((activity, hour) => ({ hour, activity }))
+          .sort((a, b) => b.activity - a.activity)
+          .slice(0, 3)
+          .map(h => h.hour),
+        suspicious_time_windows: suspiciousTimeWindows,
+        total_sessions: Math.max(Math.floor(player.total_hands / 50), 1),
+        avg_session_length: Math.round((player.total_hands / Math.max(Math.floor(player.total_hands / 50), 1)) * 2.5), // minutes
+        weekend_vs_weekday_ratio: Math.round((dailyActivity.slice(5).reduce((a, b) => a + b, 0) / 
+                                            dailyActivity.slice(0, 5).reduce((a, b) => a + b, 0)) * 100) / 100,
+        consistency_score: Math.round((100 - (player.bad_actor_score * 0.5)) * 10) / 10,
+        last_analyzed: new Date().toISOString()
+      };
+    });
+
+    const response = {
+      total_players_analyzed: timePatterns.length,
+      patterns: timePatterns,
+      summary: {
+        most_active_hours: [19, 20, 21, 22], // Common peak hours
+        most_active_days: ['Friday', 'Saturday', 'Sunday'],
+        suspicious_players_count: timePatterns.filter(p => p.suspicious_time_windows.length > 0).length,
+        avg_consistency_score: Math.round(timePatterns.reduce((sum, p) => sum + p.consistency_score, 0) / timePatterns.length * 10) / 10
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Time patterns API error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch time patterns' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {

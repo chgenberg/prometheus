@@ -1,16 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
+import { queryTurso } from '../../../lib/database-turso';
+
+async function getCoinpokerPlayersFromTurso(limit: number = 200) {
+  console.log('Fetching CoinPoker players from Turso for postflop analysis...');
+  
+  const query = `
+    SELECT 
+      player_id,
+      total_hands,
+      net_win_bb,
+      vpip,
+      pfr,
+      avg_postflop_score,
+      avg_preflop_score,
+      intention_score,
+      collution_score,
+      bad_actor_score
+    FROM main
+    WHERE player_id LIKE 'CoinPoker%'
+    ORDER BY total_hands DESC
+    LIMIT ?
+  `;
+  
+  try {
+    const result = await queryTurso(query, [limit]);
+    console.log(`Found ${result.rows.length} CoinPoker players for postflop analysis`);
+    
+    return result.rows.map((row: any) => ({
+      player_id: row.player_id,
+      total_hands: row.total_hands || 0,
+      net_win_bb: row.net_win_bb || 0,
+      vpip: row.vpip || 0,
+      pfr: row.pfr || 0,
+      avg_postflop_score: row.avg_postflop_score || 0,
+      avg_preflop_score: row.avg_preflop_score || 0,
+      intention_score: row.intention_score || 0,
+      collution_score: row.collution_score || 0,
+      bad_actor_score: row.bad_actor_score || 0,
+    }));
+  } catch (error) {
+    console.error('Error fetching players from Turso for postflop analysis:', error);
+    throw error;
+  }
+}
 
 export async function GET(request: NextRequest) {
-  let db;
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '200'); // Increased from 100 to 200
     
-    db = await getApiDb();
-    
-    // Get Coinpoker players using the helper function with increased limit
-    const allPlayers = await getCoinpokerPlayers(db, limit);
+    // Get Coinpoker players using Turso with increased limit
+    const allPlayers = await getCoinpokerPlayersFromTurso(limit);
     
     if (!allPlayers || allPlayers.length === 0) {
       return NextResponse.json({
@@ -114,9 +154,5 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch postflop analysis data' },
       { status: 500 }
     );
-  } finally {
-    if (db) {
-      await closeDb(db);
-    }
   }
 } 

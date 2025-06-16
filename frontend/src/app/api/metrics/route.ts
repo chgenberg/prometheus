@@ -1,122 +1,155 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, closeDb, getCoinpokerPlayers, Player } from '../../../lib/database-api-helper';
+import { queryTurso } from '../../../lib/database-turso';
 
-interface DatabaseMetrics {
-  totalPlayers: number;
-  totalHands: number;
-  averageHandsPerPlayer: number;
-  topPlayersByHands: Array<{
-    player_name: string;
-    hands_played: number;
-  }>;
-  recentActivity: {
-    playersWithRecentActivity: number;
-    handsLastWeek: number;
-  };
+interface Player {
+  player_id: string;
+  total_hands: number;
+  net_win_bb: number;
+  vpip: number;
+  pfr: number;
+  avg_postflop_score: number;
+  avg_preflop_score: number;
+  intention_score: number;
+  collution_score: number;
+  bad_actor_score: number;
 }
 
-interface SystemMetrics {
-  requestsPerMinute: number;
-  averageResponseTime: number;
-  cacheHitRate: number;
-  errorRate: number;
-  activeConnections: number;
-}
-
-export async function GET(request: NextRequest) {
-  let db;
+async function getCoinpokerPlayersFromTurso(): Promise<Player[]> {
+  console.log('Fetching CoinPoker players from Turso for metrics...');
+  
+  const query = `
+    SELECT 
+      player_id,
+      total_hands,
+      net_win_bb,
+      vpip,
+      pfr,
+      avg_postflop_score,
+      avg_preflop_score,
+      intention_score,
+      collution_score,
+      bad_actor_score
+    FROM main
+    WHERE player_id LIKE 'CoinPoker%'
+    ORDER BY total_hands DESC
+  `;
+  
   try {
-    db = await getApiDb();
+    const result = await queryTurso(query);
+    console.log(`Found ${result.rows.length} CoinPoker players for metrics`);
     
-    // Get all Coinpoker players using standardized helper
-    const allPlayers = await getCoinpokerPlayers(db);
+    return result.rows.map((row: any) => ({
+      player_id: row.player_id,
+      total_hands: row.total_hands || 0,
+      net_win_bb: row.net_win_bb || 0,
+      vpip: row.vpip || 0,
+      pfr: row.pfr || 0,
+      avg_postflop_score: row.avg_postflop_score || 0,
+      avg_preflop_score: row.avg_preflop_score || 0,
+      intention_score: row.intention_score || 0,
+      collution_score: row.collution_score || 0,
+      bad_actor_score: row.bad_actor_score || 0,
+    }));
+  } catch (error) {
+    console.error('Error fetching players from Turso for metrics:', error);
+    throw error;
+  }
+}
+
+export async function GET() {
+  try {
+    // Get all Coinpoker players from Turso
+    const players = await getCoinpokerPlayersFromTurso();
     
-    if (!allPlayers || allPlayers.length === 0) {
+    if (players.length === 0) {
       return NextResponse.json({
-        database: {
-          totalPlayers: 0,
-          totalHands: 0,
-          averageHandsPerPlayer: 0,
-          topPlayersByHands: [],
-          recentActivity: {
-            playersWithRecentActivity: 0,
-            handsLastWeek: 0
-          }
-        },
-        system: {
-          requestsPerMinute: 0,
-          averageResponseTime: 0,
-          cacheHitRate: 0,
-          errorRate: 0,
-          activeConnections: 1
-        }
+        error: 'No players found',
+        totalPlayers: 0,
+        totalHands: 0,
+        avgHandsPerPlayer: 0,
+        topPerformers: [],
+        riskDistribution: [],
+        timestamp: new Date().toISOString()
       });
     }
 
-    // Calculate database metrics
-    const totalPlayers = allPlayers.length;
-    const totalHands = allPlayers.reduce((sum, player) => sum + (player.total_hands || 0), 0);
-    const averageHandsPerPlayer = totalPlayers > 0 ? Math.round(totalHands / totalPlayers) : 0;
+    // Calculate metrics
+    const totalPlayers = players.length;
+    const totalHands = players.reduce((sum, p) => sum + (p.total_hands || 0), 0);
+    const avgHandsPerPlayer = Math.round(totalHands / totalPlayers);
 
-    // Get top players by hands (top 5)
-    const topPlayersByHands = allPlayers
+    // Top performers by hands
+    const topPerformers = players
       .sort((a, b) => (b.total_hands || 0) - (a.total_hands || 0))
-      .slice(0, 5)
-      .map(player => ({
-        player_name: player.player_id,
-        hands_played: player.total_hands || 0
+      .slice(0, 10)
+      .map(p => ({
+        player_id: p.player_id,
+        total_hands: p.total_hands || 0,
+        net_win_bb: p.net_win_bb || 0,
+        vpip: p.vpip || 0,
+        pfr: p.pfr || 0,
+        bad_actor_score: p.bad_actor_score || 0
       }));
 
-    // Calculate recent activity (simulated based on available data)
-    const recentPlayers = allPlayers.filter(player => {
-      if (!player.updated_at) return false;
-      const lastUpdate = new Date(player.updated_at);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return lastUpdate > weekAgo;
+    // Risk distribution
+    const riskLevels = {
+      'Low Risk': 0,
+      'Medium Risk': 0,
+      'High Risk': 0,
+      'Critical Risk': 0
+    };
+
+    players.forEach(player => {
+      const maxScore = Math.max(
+        player.bad_actor_score || 0,
+        player.intention_score || 0,
+        player.collution_score || 0
+      );
+
+      if (maxScore >= 75) riskLevels['Critical Risk']++;
+      else if (maxScore >= 50) riskLevels['High Risk']++;
+      else if (maxScore >= 25) riskLevels['Medium Risk']++;
+      else riskLevels['Low Risk']++;
     });
 
-    const databaseMetrics: DatabaseMetrics = {
+    const riskDistribution = Object.entries(riskLevels).map(([level, count]) => ({
+      level,
+      count,
+      percentage: Math.round((count / totalPlayers) * 100 * 10) / 10
+    }));
+
+    // VPIP/PFR distribution
+    const vpipDistribution = {
+      'Tight (<20%)': players.filter(p => (p.vpip || 0) < 20).length,
+      'Standard (20-30%)': players.filter(p => (p.vpip || 0) >= 20 && (p.vpip || 0) < 30).length,
+      'Loose (30-40%)': players.filter(p => (p.vpip || 0) >= 30 && (p.vpip || 0) < 40).length,
+      'Very Loose (40%+)': players.filter(p => (p.vpip || 0) >= 40).length
+    };
+
+    const response = {
       totalPlayers,
       totalHands,
-      averageHandsPerPlayer,
-      topPlayersByHands,
-      recentActivity: {
-        playersWithRecentActivity: recentPlayers.length,
-        handsLastWeek: Math.round(totalHands * 0.1) // Estimate 10% of hands in last week
-      }
-    };
-
-    // Generate system metrics (simulated for demonstration)
-    const systemMetrics: SystemMetrics = {
-      requestsPerMinute: Math.round(Math.random() * 100) + 50,
-      averageResponseTime: Math.round(Math.random() * 200) + 100,
-      cacheHitRate: Math.round(Math.random() * 30) + 70,
-      errorRate: Math.round(Math.random() * 5),
-      activeConnections: Math.round(Math.random() * 10) + 5
-    };
-
-    return NextResponse.json({
-      database: databaseMetrics,
-      system: systemMetrics,
-      timestamp: new Date().toISOString(),
-      healthy: true
-    });
-
-  } catch (error) {
-    console.error('Metrics endpoint error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to fetch metrics',
-        timestamp: new Date().toISOString(),
-        healthy: false
+      avgHandsPerPlayer,
+      topPerformers,
+      riskDistribution,
+      vpipDistribution,
+      averageStats: {
+        vpip: Math.round((players.reduce((sum, p) => sum + (p.vpip || 0), 0) / totalPlayers) * 10) / 10,
+        pfr: Math.round((players.reduce((sum, p) => sum + (p.pfr || 0), 0) / totalPlayers) * 10) / 10,
+        avg_preflop_score: Math.round((players.reduce((sum, p) => sum + (p.avg_preflop_score || 0), 0) / totalPlayers) * 10) / 10,
+        avg_postflop_score: Math.round((players.reduce((sum, p) => sum + (p.avg_postflop_score || 0), 0) / totalPlayers) * 10) / 10,
+        bad_actor_score: Math.round((players.reduce((sum, p) => sum + (p.bad_actor_score || 0), 0) / totalPlayers) * 10) / 10
       },
+      timestamp: new Date().toISOString()
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Metrics API error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch metrics data' },
       { status: 500 }
     );
-  } finally {
-    if (db) {
-      await closeDb(db);
-    }
   }
 }
 

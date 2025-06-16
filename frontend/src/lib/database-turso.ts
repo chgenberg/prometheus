@@ -34,8 +34,21 @@ export async function queryTurso(sql: string, params: any[] = []): Promise<Turso
   const db = getTursoDb();
   try {
     const result = await db.execute({ sql, args: params });
+    // Convert Turso result format to our expected format
+    const rows = result.rows.map((row: any) => {
+      // If row is an object, return as-is. If it's an array, convert to object
+      if (Array.isArray(row)) {
+        const obj: any = {};
+        result.columns.forEach((col: string, index: number) => {
+          obj[col] = row[index];
+        });
+        return obj;
+      }
+      return row;
+    });
+    
     return {
-      rows: result.rows,
+      rows: rows,
       meta: {
         columns: result.columns || []
       }

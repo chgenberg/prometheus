@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, closeDb } from '../../../lib/database-api-helper';
+import { queryTurso } from '../../../lib/database-turso';
 
 interface HandHistoryData {
   hand_id: string;
@@ -66,8 +66,6 @@ interface HandHistoryStats {
 }
 
 export async function GET(request: NextRequest) {
-  let db: any = null;
-  
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -76,10 +74,8 @@ export async function GET(request: NextRequest) {
     const street = searchParams.get('street'); // PREFLOP, FLOP, TURN, RIVER
     const action = searchParams.get('action'); // raise, call, fold, etc.
 
-    db = await getApiDb();
-    
     // Build WHERE clause for filters
-    let whereConditions = ["player_id LIKE 'coinpoker-%'"];
+    let whereConditions = ["player_id LIKE 'CoinPoker%'"];
     let params: any[] = [];
     
     if (player) {
@@ -128,7 +124,8 @@ export async function GET(request: NextRequest) {
     `;
     
     params.push(limit, offset);
-    const hands = await db.all(handsQuery, params);
+    const handsResult = await queryTurso(handsQuery, params);
+    const hands = handsResult.rows;
 
     // Get comprehensive statistics
     const statsQuery = `
@@ -141,89 +138,97 @@ export async function GET(request: NextRequest) {
         MIN(money_won) as biggest_loss,
         AVG(pot_before) as average_pot_size
       FROM detailed_actions 
-      WHERE player_id LIKE 'coinpoker-%'
+      WHERE player_id LIKE 'CoinPoker%'
     `;
     
-    const generalStats = await db.get(statsQuery);
+    const statsResult = await queryTurso(statsQuery);
+    const generalStats = statsResult.rows[0];
 
     // Street distribution
     const streetDistQuery = `
       SELECT 
         street,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'coinpoker-%'
+      WHERE player_id LIKE 'CoinPoker%'
       GROUP BY street
       ORDER BY count DESC
     `;
-    const streetDistribution = await db.all(streetDistQuery);
+    const streetDistResult = await queryTurso(streetDistQuery);
+    const streetDistribution = streetDistResult.rows;
 
     // Action distribution
     const actionDistQuery = `
       SELECT 
         action_type,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'coinpoker-%'
+      WHERE player_id LIKE 'CoinPoker%'
       GROUP BY action_type
       ORDER BY count DESC
     `;
-    const actionDistribution = await db.all(actionDistQuery);
+    const actionDistResult = await queryTurso(actionDistQuery);
+    const actionDistribution = actionDistResult.rows;
 
     // Position distribution
     const positionDistQuery = `
       SELECT 
         position,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'coinpoker-%' AND position IS NOT NULL
+      WHERE player_id LIKE 'CoinPoker%' AND position IS NOT NULL
       GROUP BY position
       ORDER BY count DESC
     `;
-    const positionDistribution = await db.all(positionDistQuery);
+    const positionDistResult = await queryTurso(positionDistQuery);
+    const positionDistribution = positionDistResult.rows;
 
     // Pot type distribution
     const potTypeDistQuery = `
       SELECT 
         pot_type,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'coinpoker-%' AND pot_type IS NOT NULL
+      WHERE player_id LIKE 'CoinPoker%' AND pot_type IS NOT NULL
       GROUP BY pot_type
       ORDER BY count DESC
     `;
-    const potTypeDistribution = await db.all(potTypeDistQuery);
+    const potTypeDistResult = await queryTurso(potTypeDistQuery);
+    const potTypeDistribution = potTypeDistResult.rows;
 
     // Stakes distribution
     const stakesDistQuery = `
       SELECT 
         stakes,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'coinpoker-%' AND stakes IS NOT NULL
+      WHERE player_id LIKE 'CoinPoker%' AND stakes IS NOT NULL
       GROUP BY stakes
       ORDER BY count DESC
     `;
-    const stakesDistribution = await db.all(stakesDistQuery);
+    const stakesDistResult = await queryTurso(stakesDistQuery);
+    const stakesDistribution = stakesDistResult.rows;
 
-    // Player intention distribution
+    // Intention distribution
     const intentionDistQuery = `
       SELECT 
         player_intention,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'coinpoker-%' AND player_intention IS NOT NULL
+      WHERE player_id LIKE 'CoinPoker%' AND player_intention IS NOT NULL
       GROUP BY player_intention
       ORDER BY count DESC
     `;
-    const intentionDistribution = await db.all(intentionDistQuery);
+    const intentionDistResult = await queryTurso(intentionDistQuery);
+    const intentionDistribution = intentionDistResult.rows;
 
+    // Format response
     const stats: HandHistoryStats = {
       total_hands: generalStats.total_hands || 0,
       total_actions: generalStats.total_actions || 0,
@@ -238,34 +243,31 @@ export async function GET(request: NextRequest) {
         total_money_won: generalStats.total_money_won || 0,
         biggest_pot: generalStats.biggest_pot || 0,
         biggest_loss: generalStats.biggest_loss || 0,
-        average_pot_size: generalStats.average_pot_size || 0
+        average_pot_size: Math.round((generalStats.average_pot_size || 0) * 100) / 100
       }
     };
 
     return NextResponse.json({
-      hands: hands,
+      hand_history: hands,
       stats: stats,
-      meta: {
-        returned_count: hands.length,
+      pagination: {
         limit: limit,
         offset: offset,
-        filters: {
-          player: player || null,
-          street: street || null,
-          action: action || null
-        }
+        total_count: generalStats.total_actions || 0,
+        has_more: (offset + limit) < (generalStats.total_actions || 0)
+      },
+      filters: {
+        player: player || null,
+        street: street || null,
+        action: action || null
       }
     });
 
   } catch (error) {
     console.error('Hand history API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch hand history data', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to fetch hand history data' },
       { status: 500 }
     );
-  } finally {
-    if (db) {
-      await closeDb(db);
-    }
   }
 } 

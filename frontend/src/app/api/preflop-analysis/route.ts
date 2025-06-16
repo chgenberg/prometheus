@@ -1,17 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
+import { queryTurso } from '../../../lib/database-turso';
+
+async function getCoinpokerPlayersFromTurso() {
+  console.log('Fetching CoinPoker players from Turso for preflop analysis...');
+  
+  const query = `
+    SELECT 
+      player_id,
+      total_hands,
+      net_win_bb,
+      vpip,
+      pfr,
+      avg_postflop_score,
+      avg_preflop_score,
+      intention_score,
+      collution_score,
+      bad_actor_score
+    FROM main
+    WHERE player_id LIKE 'CoinPoker%'
+    ORDER BY total_hands DESC
+  `;
+  
+  try {
+    const result = await queryTurso(query);
+    console.log(`Found ${result.rows.length} CoinPoker players for preflop analysis`);
+    
+    return result.rows.map((row: any) => ({
+      player_id: row.player_id,
+      total_hands: row.total_hands || 0,
+      net_win_bb: row.net_win_bb || 0,
+      vpip: row.vpip || 0,
+      pfr: row.pfr || 0,
+      avg_postflop_score: row.avg_postflop_score || 0,
+      avg_preflop_score: row.avg_preflop_score || 0,
+      intention_score: row.intention_score || 0,
+      collution_score: row.collution_score || 0,
+      bad_actor_score: row.bad_actor_score || 0,
+    }));
+  } catch (error) {
+    console.error('Error fetching players from Turso for preflop analysis:', error);
+    throw error;
+  }
+}
 
 export async function GET(request: NextRequest) {
-  let db;
   try {
     const { searchParams } = new URL(request.url);
     const minHands = parseInt(searchParams.get('minHands') || '50');
     const limit = parseInt(searchParams.get('limit') || '200');
 
-    db = await getApiDb();
-
-    // Get Coinpoker players using the helper function
-    const allPlayers = await getCoinpokerPlayers(db);
+    // Get Coinpoker players using Turso
+    const allPlayers = await getCoinpokerPlayersFromTurso();
     
     if (!allPlayers || allPlayers.length === 0) {
       return NextResponse.json({
@@ -147,9 +186,5 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch preflop analysis data', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
-  } finally {
-    if (db) {
-      await closeDb(db);
-    }
   }
 } 

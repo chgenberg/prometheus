@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, getCoinpokerPlayers, closeDb } from '../../../../lib/database-api-helper';
+import { queryTurso } from '../../../../lib/database-turso';
 
 // This interface should be shared, but for now, we define it here to fix the build.
 interface RealHandAction {
@@ -18,6 +18,53 @@ interface RealHandAction {
   timestamp: string;
 }
 
+async function getCoinpokerPlayerFromTurso(playerName: string) {
+  console.log('Fetching player from Turso:', playerName);
+  
+  const query = `
+    SELECT 
+      player_id,
+      total_hands,
+      net_win_bb,
+      vpip,
+      pfr,
+      avg_postflop_score,
+      avg_preflop_score,
+      intention_score,
+      collution_score,
+      bad_actor_score
+    FROM main
+    WHERE player_id = ?
+    LIMIT 1
+  `;
+  
+  try {
+    const result = await queryTurso(query, [playerName]);
+    console.log(`Found ${result.rows.length} players matching ${playerName}`);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    const row = result.rows[0];
+    return {
+      player_id: row.player_id,
+      total_hands: row.total_hands || 0,
+      net_win_bb: row.net_win_bb || 0,
+      vpip: row.vpip || 0,
+      pfr: row.pfr || 0,
+      avg_postflop_score: row.avg_postflop_score || 0,
+      avg_preflop_score: row.avg_preflop_score || 0,
+      intention_score: row.intention_score || 0,
+      collution_score: row.collution_score || 0,
+      bad_actor_score: row.bad_actor_score || 0,
+    };
+  } catch (error) {
+    console.error('Error fetching player from Turso:', error);
+    throw error;
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ playerName: string }> }
@@ -33,19 +80,15 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid player name format' }, { status: 400 });
     }
     
-    const db = await getApiDb();
-
     console.log('Fetching player data for:', playerName);
     
-    // Get all coinpoker players and find the specific one
-    const allPlayers = await getCoinpokerPlayers(db);
-    const targetPlayer = allPlayers.find(p => p.player_id === playerName);
+    // Get the specific player from Turso
+    const targetPlayer = await getCoinpokerPlayerFromTurso(playerName);
 
     console.log('Player stats result:', targetPlayer);
 
     if (!targetPlayer) {
       console.log('No player found with name:', playerName);
-      await closeDb(db);
       return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     }
 
@@ -59,7 +102,7 @@ export async function GET(
       preflop_pfr: targetPlayer.pfr || 0,
       postflop_aggression: targetPlayer.avg_postflop_score || 0,
       showdown_win_percent: 50 + Math.random() * 20 - 10, // Simulated
-      last_updated: targetPlayer.updated_at || new Date().toISOString(),
+      last_updated: new Date().toISOString(),
       avg_preflop_score: targetPlayer.avg_preflop_score || 0,
       avg_postflop_score: targetPlayer.avg_postflop_score || 0,
       intention_score: targetPlayer.intention_score || 0,
@@ -177,7 +220,6 @@ export async function GET(
     };
 
     console.log('Returning player data with', Object.keys(response).length, 'fields');
-    await closeDb(db);
     return NextResponse.json(response);
 
   } catch (error) {
@@ -209,7 +251,7 @@ function generateRandomBoard(): string {
     cards.push(card);
   }
   
-  return cards.join(' ');
+  return cards.join(', ');
 }
 
 // Helper types from other files that might be needed

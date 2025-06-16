@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
+import { queryTurso } from '../../../lib/database-turso';
 
 interface BotDetectionData {
   suspicious_players: Array<{
@@ -33,13 +33,52 @@ interface BotDetectionData {
   }>;
 }
 
-export async function GET(request: NextRequest) {
-  let db;
+async function getCoinpokerPlayersFromTurso() {
+  console.log('Fetching CoinPoker players from Turso for security overview...');
+  
+  const query = `
+    SELECT 
+      player_id,
+      total_hands,
+      net_win_bb,
+      vpip,
+      pfr,
+      avg_postflop_score,
+      avg_preflop_score,
+      intention_score,
+      collution_score,
+      bad_actor_score
+    FROM main
+    WHERE player_id LIKE 'CoinPoker%'
+    ORDER BY total_hands DESC
+  `;
+  
   try {
-    db = await getApiDb();
+    const result = await queryTurso(query);
+    console.log(`Found ${result.rows.length} CoinPoker players for security overview`);
     
-    // Get all Coinpoker players using standardized helper
-    const allPlayers = await getCoinpokerPlayers(db, 200); // Increased from default 50 to 200
+    return result.rows.map((row: any) => ({
+      player_id: row.player_id,
+      total_hands: row.total_hands || 0,
+      net_win_bb: row.net_win_bb || 0,
+      vpip: row.vpip || 0,
+      pfr: row.pfr || 0,
+      avg_postflop_score: row.avg_postflop_score || 0,
+      avg_preflop_score: row.avg_preflop_score || 0,
+      intention_score: row.intention_score || 0,
+      collution_score: row.collution_score || 0,
+      bad_actor_score: row.bad_actor_score || 0,
+    }));
+  } catch (error) {
+    console.error('Error fetching players from Turso for security overview:', error);
+    throw error;
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Get all Coinpoker players using Turso
+    const allPlayers = await getCoinpokerPlayersFromTurso();
     
     if (!allPlayers || allPlayers.length === 0) {
       // Return fallback data if no players found
@@ -157,9 +196,5 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch security overview data' },
       { status: 500 }
     );
-  } finally {
-    if (db) {
-      await closeDb(db);
-    }
   }
 } 

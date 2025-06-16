@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
+import { queryTurso } from '../../../lib/database-turso';
 
 interface BotScoreResult {
     player_id: string;
@@ -19,33 +17,8 @@ interface BotScoreResult {
 
 export async function GET(request: NextRequest) {
     try {
-        // Find database using multiple possible paths
-        const possiblePaths = [
-            path.join(process.cwd(), 'heavy_analysis3.db'), // Primary Vercel production path
-            './heavy_analysis3.db', // Alternative production path  
-            path.join(process.cwd(), '..', 'heavy_analysis3.db'), // Development path
-        ];
-        
-        let dbPath: string | null = null;
-        for (const testPath of possiblePaths) {
-            const fs = require('fs');
-            if (fs.existsSync(testPath)) {
-                dbPath = testPath;
-                break;
-            }
-        }
-        
-        if (!dbPath) {
-            throw new Error('Database file not found');
-        }
-        
-        const db = await open({
-            filename: dbPath,
-            driver: sqlite3.Database
-        });
-        
-        // Get top players by bot score (using bad_actor_score as bot_score)
-        const players = await db.all(`
+        // Get top players by bot score (using bad_actor_score as bot_score) from Turso
+        const query = `
             SELECT 
                 player_id,
                 bad_actor_score as bot_score,
@@ -55,13 +28,14 @@ export async function GET(request: NextRequest) {
                 intention_score,
                 collution_score
             FROM main 
-            WHERE player_id LIKE 'coinpoker/%' 
+            WHERE player_id LIKE 'CoinPoker%' 
             AND bad_actor_score IS NOT NULL 
             ORDER BY bad_actor_score DESC 
             LIMIT 50
-        `);
+        `;
         
-        await db.close();
+        const result = await queryTurso(query);
+        const players = result.rows;
         
         if (players.length === 0) {
             return NextResponse.json({
