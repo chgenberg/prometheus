@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
+import fs from 'fs';
 
 // Standardized database connection for all API endpoints
 export async function getApiDb(): Promise<Database> {
@@ -21,7 +22,6 @@ export async function getApiDb(): Promise<Database> {
   const dbPath = await (async () => {
     for (const testPath of possiblePaths) {
       try {
-        const fs = await import('fs');
         if (fs.existsSync(testPath)) {
           console.log(`Database found at: ${testPath}`);
           return testPath;
