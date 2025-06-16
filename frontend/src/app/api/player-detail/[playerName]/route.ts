@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '../../../../lib/database-unified';
+import { getApiDb, getCoinpokerPlayers, closeDb } from '../../../../lib/database-api-helper';
 
 export async function GET(
   request: NextRequest,
@@ -16,53 +16,39 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid player name format' }, { status: 400 });
     }
     
-    const db = await getDb();
+    const db = await getApiDb();
 
     console.log('Fetching player data for:', playerName);
     
-    // Get player statistics - simplified version that matches working players API
-    const playerStats = await db.get(`
-      SELECT 
-        m.player_id as player_name,
-        m.total_hands,
-        150000 as net_win_chips,
-        12.5 as net_win_bb,
-        65.5 as win_rate_percent,
-        m.vpip as preflop_vpip,
-        m.pfr as preflop_pfr,
-        75.0 as postflop_aggression,
-        62.0 as showdown_win_percent,
-        m.updated_at as last_updated,
-        CASE 
-          WHEN m.vpip > 0 THEN ROUND((m.pfr * 100.0 / m.vpip), 1)
-          ELSE 0 
-        END as avg_preflop_score,
-        82.5 as avg_postflop_score,
-        CASE 
-          WHEN m.vpip > 0 AND m.pfr > 0 THEN 
-            ROUND(100 - ABS(m.vpip - m.pfr * 2.5), 1)
-          ELSE 50 
-        END as intention_score,
-        CASE 
-          WHEN m.vpip > 0 AND m.pfr / m.vpip > 0.9 THEN 75
-          WHEN m.vpip < 5 OR m.vpip > 80 THEN 60
-          ELSE 0 
-        END as collusion_score,
-        CASE 
-          WHEN m.vpip > 60 OR m.vpip < 5 THEN 80
-          WHEN m.pfr > 40 OR (m.vpip > 0 AND m.pfr / m.vpip < 0.3) THEN 60
-          ELSE 25 
-        END as bad_actor_score
-      FROM main m
-      WHERE m.player_id = ?
-    `, [playerName]);
+    // Get all coinpoker players and find the specific one
+    const allPlayers = await getCoinpokerPlayers(db);
+    const targetPlayer = allPlayers.find(p => p.player_id === playerName);
 
-    console.log('Player stats result:', playerStats);
+    console.log('Player stats result:', targetPlayer);
 
-    if (!playerStats) {
+    if (!targetPlayer) {
       console.log('No player found with name:', playerName);
+      await closeDb(db);
       return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     }
+
+    // Transform player data to match expected format
+    const playerStats = {
+      player_name: targetPlayer.player_id,
+      total_hands: targetPlayer.total_hands || 0,
+      net_win_bb: targetPlayer.net_win_bb || 0,
+      win_rate_percent: targetPlayer.total_hands > 0 ? parseFloat(((targetPlayer.net_win_bb || 0) / targetPlayer.total_hands * 100).toFixed(2)) : 0,
+      preflop_vpip: targetPlayer.vpip || 0,
+      preflop_pfr: targetPlayer.pfr || 0,
+      postflop_aggression: targetPlayer.avg_postflop_score || 0,
+      showdown_win_percent: 50 + Math.random() * 20 - 10, // Simulated
+      last_updated: targetPlayer.updated_at || new Date().toISOString(),
+      avg_preflop_score: targetPlayer.avg_preflop_score || 0,
+      avg_postflop_score: targetPlayer.avg_postflop_score || 0,
+      intention_score: targetPlayer.intention_score || 0,
+      collusion_score: targetPlayer.collution_score || 0, // Note: database uses "collution"
+      bad_actor_score: targetPlayer.bad_actor_score || 0
+    };
 
     // Since we don't have detailed hand data in the new structure,
     // we'll create simulated hand history based on the player's stats
@@ -180,6 +166,7 @@ export async function GET(
     };
 
     console.log('Returning player data with', Object.keys(response).length, 'fields');
+    await closeDb(db);
     return NextResponse.json(response);
 
   } catch (error) {

@@ -38,11 +38,11 @@ export default function QuickStatsOverview() {
       ]);
 
       setStats({
-        totalPlayers: playersData.summary?.totalPlayers || 0,
+        totalPlayers: playersData.totalCount || 0,
         totalHands: handHistoryData.total_hands || 0,
         avgSecurityScore: securityData.securityMetrics?.botLikelihood || 0,
         avgAIScore: 85.5, // This would come from AI analytics
-        activeToday: Math.floor((playersData.summary?.totalPlayers || 0) * 0.3), // Simulated
+        activeToday: Math.floor((playersData.totalCount || 0) * 0.3), // Simulated
         systemHealth: 'excellent'
       });
     } catch (error) {

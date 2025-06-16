@@ -80,7 +80,7 @@ export default function SystemStatusDashboard() {
         database: {
           status: playersResponse.ok ? 'healthy' : 'error',
           responseTime: dbResponseTime,
-          totalPlayers: playersData.summary?.totalPlayers || 0,
+          totalPlayers: playersData.totalCount || 0,
           totalHands: handHistoryData.total_hands || 0,
           lastUpdate: new Date().toISOString()
         },

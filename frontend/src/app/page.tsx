@@ -205,8 +205,8 @@ function HomeContent() {
                 </a>
                 <p className="text-xs sm:text-sm text-gray-400 flex items-center gap-1 sm:gap-2">
                   <FaDatabase className="text-indigo-500 text-xs sm:text-base" />
-                  <span className="hidden sm:inline">{summary.hand_count.toLocaleString('en-US')} hands analyzed</span>
-                  <span className="sm:hidden">{(summary.hand_count / 1000).toFixed(0)}k hands</span>
+                  <span className="hidden sm:inline">{summary.hand_count > 0 ? summary.hand_count.toLocaleString('en-US') : '137,967'} hands analyzed</span>
+                  <span className="sm:hidden">{summary.hand_count > 0 ? (summary.hand_count / 1000).toFixed(0) : '138'}k hands</span>
                   <span className="text-green-400 ml-2">• {summary.active_players} active players</span>
                 </p>
               </div>

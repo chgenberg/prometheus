@@ -465,18 +465,18 @@ export default function PlayerDetails({ playerName }: PlayerDetailsProps) {
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 blur-2xl" />
                     <div className="relative flex space-x-2 bg-gray-900/50 rounded-2xl p-2 backdrop-blur-sm border border-gray-700/50">
                     {[
-                        { id: 'insights', label: 'Player Insights', icon: Zap, color: 'from-yellow-600 to-orange-600' },
+                        { id: 'insights', label: 'Insights', icon: Zap, color: 'from-yellow-600 to-orange-600' },
                         { id: 'overview', label: 'Statistics', icon: BarChart3, color: 'from-indigo-600 to-blue-600' },
                         { id: 'charts', label: 'Analytics', icon: TrendingUp, color: 'from-purple-600 to-pink-600' },
                         { id: 'trends', label: 'Performance', icon: Target, color: 'from-orange-600 to-red-600' },
                         { id: 'hands', label: 'Hands', icon: Activity, color: 'from-green-600 to-emerald-600' },
                         { id: 'timing', label: 'Time Patterns', icon: Clock, color: 'from-cyan-600 to-teal-600' }
                     ].map(({ id, label, icon: Icon, color }) => (
-                        <button key={id} onClick={() => setActiveTab(id as 'overview' | 'charts' | 'trends' | 'hands' | 'insights' | 'timing')} className={`relative flex-1 flex items-center justify-center space-x-2 py-3 px-6 rounded-xl transition-all duration-300 group ${activeTab === id ? 'text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
+                        <button key={id} onClick={() => setActiveTab(id as 'overview' | 'charts' | 'trends' | 'hands' | 'insights' | 'timing')} className={`relative flex-1 flex items-center justify-center space-x-1 py-2.5 px-3 rounded-xl transition-all duration-300 group ${activeTab === id ? 'text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
                             {activeTab === id && (<div className={`absolute inset-0 bg-gradient-to-r ${color} rounded-xl opacity-90`} />)}
-                            <Icon className={`relative w-5 h-5 ${activeTab === id ? 'animate-pulse' : ''}`} />
-                            <span className="relative font-medium">{label}</span>
-                            {activeTab === id && (<div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-white rounded-full" />)}
+                            <Icon className={`relative w-4 h-4 ${activeTab === id ? 'animate-pulse' : ''}`} />
+                            <span className="relative font-medium text-sm">{label}</span>
+                            {activeTab === id && (<div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-white rounded-full" />)}
                         </button>
                     ))}
                     </div>
