@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
+import fs from 'fs';
 
 // Singleton database instance
 let db: Database | null = null;
@@ -10,12 +11,9 @@ let isInitialized = false;
 const SQLITE_OPTIMIZATIONS = `
   PRAGMA journal_mode = WAL;
   PRAGMA synchronous = NORMAL;
-  PRAGMA cache_size = 50000;
-  PRAGMA temp_store = memory;
-  PRAGMA mmap_size = 1073741824;
-  PRAGMA busy_timeout = 30000;
-  PRAGMA wal_autocheckpoint = 1000;
-  PRAGMA optimize;
+  PRAGMA temp_store = MEMORY;
+  PRAGMA mmap_size = 30000000000;
+  PRAGMA page_size = 32768;
 `;
 
 // Initialize database connection
@@ -23,31 +21,28 @@ async function initializeDatabase(): Promise<Database> {
   if (db && isInitialized) {
     return db;
   }
-
-  console.log('Initializing database connection...');
-
-  // Try different paths for different environments
-  const possiblePaths = [
-    path.join(process.cwd(), 'frontend', 'heavy_analysis3.db'),
-    path.join(process.cwd(), 'heavy_analysis3.db'),
-    path.join(__dirname, '..', '..', '..', 'heavy_analysis3.db'),
-    './heavy_analysis3.db',
-    './frontend/heavy_analysis3.db'
-  ];
   
-  const dbPath = possiblePaths[0];
-  console.log('Trying database paths:', possiblePaths);
+  const possiblePaths = [
+    path.join(process.cwd(), 'heavy_analysis3.db'),
+    path.join(process.cwd(), '..', 'heavy_analysis3.db'),
+    './heavy_analysis3.db',
+  ];
+
+  const dbPath = possiblePaths.find(p => fs.existsSync(p));
+
+  if (!dbPath) {
+    console.error('Unified DB not found in any of the expected locations:', possiblePaths);
+    throw new Error('heavy_analysis3.db not found.');
+  }
 
   try {
+    console.log(`Unified DB connection initialized at: ${dbPath}`);
     db = await open({
       filename: dbPath,
       driver: sqlite3.Database
     });
 
-    // Apply performance optimizations
     await db.exec(SQLITE_OPTIMIZATIONS);
-
-    // Create indexes for better query performance
     await createOptimizedIndexes(db);
 
     isInitialized = true;
@@ -193,13 +188,13 @@ export async function getDatabaseStats(): Promise<Record<string, unknown>> {
       WHERE type='table' AND name IN ('main', 'vpip_pfr', 'postflop_scores', 'casual_hh')
     `);
     
-    const dbSize = await database.get(`
+    const dbSize = await database.get<{ size: number }>(`
       SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()
     `);
     
     return {
       tables: stats,
-      database_size_bytes: dbSize?.size || 0,
+      database_size_bytes: dbSize?.size ?? 0,
       cache_size: queryCache.size,
       is_initialized: isInitialized,
       timestamp: new Date().toISOString()
@@ -303,28 +298,11 @@ export async function getAdvancedHandAnalysisSummary() {
 
 export async function getHands() {
   const database = await getDb();
-  let query = `
-    SELECT 
-      player_id as player_name, 
-      total_hands as hands_played, 
-      net_win_bb,
-      CASE 
-        WHEN total_hands > 0 THEN ROUND((net_win_bb / total_hands) * 100, 2)
-        ELSE 0 
-      END as win_rate_percent,
-      vpip,
-      pfr,
-      intention_score,
-      updated_at as last_updated 
-    FROM main
+  const query = `
+    SELECT * FROM casual_hh 
+    ORDER BY updated_at DESC LIMIT 20
   `;
-  const params: (string | number)[] = [];
-
-  query += ' ORDER BY updated_at DESC LIMIT 20';
-
-  const hands = await database.all(query, params);
-  // Don't close the database - managed by unified system
-
+  const hands = await database.all(query);
   return hands;
 }
 
@@ -376,165 +354,111 @@ export async function getPlayerStats(
   searchParams: { [key: string]: string | string[] | undefined }
 ): Promise<{ stats: PlayerStat[]; totalPlayers: number }> {
   const database = await getDb();
+  const {
+    page = '1',
+    sortField = 'hands_played',
+    sortDirection = 'desc',
+    filters,
+  } = searchParams;
 
-  const page = typeof searchParams?.page === 'string' ? parseInt(searchParams.page, 10) : 1;
-  const sortBy = typeof searchParams?.sortBy === 'string' ? searchParams.sortBy : 'net_win_chips';
-  const sortOrder = typeof searchParams?.sortOrder === 'string' ? searchParams.sortOrder : 'desc';
-  const playerName = typeof searchParams?.player_name === 'string' ? searchParams.player_name : undefined;
+  const pageNumber = parseInt(page as string, 10) || 1;
+  const limitNumber = 50;
+  const offset = (pageNumber - 1) * limitNumber;
 
-  const whereClauses: string[] = [];
-  const params: (string | number)[] = [];
-  
-  // Filter out non-real players (hand history data and test data)
-  whereClauses.push("m.player_id LIKE 'coinpoker/%'");
-  whereClauses.push("m.total_hands > 0");
-  
-  if (playerName) {
-    whereClauses.push("m.player_id LIKE ?");
-    params.push(`%${playerName}%`);
+  let whereClauses: string[] = [`player_name LIKE 'coinpoker/%'`];
+  let queryParams: (string | number)[] = [];
+
+  if (filters && typeof filters === 'string') {
+    try {
+      const parsedFilters: Array<{ id: string; value: string | [number, number] }> = JSON.parse(filters);
+      
+      parsedFilters.forEach(filter => {
+        if (typeof filter.value === 'string') {
+          whereClauses.push(`${filter.id} LIKE ?`);
+          queryParams.push(`%${filter.value}%`);
+        } else if (Array.isArray(filter.value)) {
+          whereClauses.push(`${filter.id} BETWEEN ? AND ?`);
+          queryParams.push(...filter.value);
+        }
+      });
+    } catch (e) {
+      console.error("Failed to parse filters:", e);
+    }
   }
 
-  const whereStatement = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+  const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
   
-  const countQuery = `
-    SELECT COUNT(*) as total 
-    FROM main m
-    ${whereStatement}
-  `;
-  const { total: totalPlayers } = await database.get(countQuery, params) || { total: 0 };
+  const sortableColumns: { [key: string]: string } = {
+    player_name: 'player_name',
+    hands_played: 'hands_played',
+    net_win_bb: 'net_win_bb',
+    win_rate_percent: 'win_rate_percent',
+    vpip: 'preflop_vpip',
+    pfr: 'preflop_pfr',
+    aggression: 'postflop_aggression',
+  };
 
-  const limit = 50;
-  const offset = (page - 1) * limit;
+  const finalSortBy = sortableColumns[sortField as string] || 'hands_played';
+  const finalSortOrder = sortDirection === 'asc' ? 'ASC' : 'DESC';
 
-  const finalSortBy = sortableColumns[sortBy] || 'net_win_chips';
-  const finalSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
+  const totalPlayersQuery = `SELECT COUNT(*) as count FROM player_profile ${whereString}`;
+  const totalPlayersResult = await database.get<{ count: number }>(totalPlayersQuery, queryParams);
+  const totalPlayers = totalPlayersResult?.count ?? 0;
 
   const query = `
-    SELECT
-      m.player_id as player_name,
-      m.total_hands as hands_played,
-      m.net_win_bb,
-      CASE 
-        WHEN m.net_win LIKE "$%" THEN CAST(REPLACE(REPLACE(m.net_win, "$", ""), ",", "") AS REAL)
-        ELSE 0 
-      END as net_win_chips,
-      CASE 
-        WHEN m.total_hands > 0 THEN ROUND((m.net_win_bb / m.total_hands) * 100, 2)
-        ELSE 0 
-      END as win_rate_percent,
-      m.vpip as preflop_vpip,
-      m.pfr as preflop_pfr,
-      COALESCE(ps.avg_action_score, 0) as postflop_aggression,
-      COALESCE(ps.flop_scores, 0) as flop_score,
-      COALESCE(ps.turn_scores, 0) as turn_score,
-      COALESCE(ps.river_scores, 0) as river_score,
-      COALESCE(ps.avg_difficulty, 0) as decision_difficulty,
-      COALESCE(ps.total_decisions, 0) as total_decisions,
-      CASE 
-        WHEN m.total_hands > 0 THEN ROUND((m.net_win_bb / m.total_hands) * 100, 2)
-        ELSE 0 
-      END as showdown_win_percent,
-      m.avg_preflop_score,
-      m.avg_postflop_score,
-      CASE 
-        WHEN m.intention_score IS NULL THEN 'N/A'
-        ELSE CAST(ROUND(m.intention_score, 1) AS TEXT)
-      END as intention_score,
-      CASE 
-        WHEN m.collution_score IS NULL THEN 'N/A'
-        ELSE CAST(ROUND(m.collution_score, 1) AS TEXT)
-      END as collusion_score,
-      CASE 
-        WHEN m.bad_actor_score IS NULL THEN 'N/A'
-        ELSE CAST(ROUND(m.bad_actor_score, 1) AS TEXT)
-      END as bad_actor_score
-    FROM main m
-    LEFT JOIN postflop_scores ps ON REPLACE(m.player_id, '/', '-') = ps.player
-    ${whereStatement}
+    SELECT *
+    FROM player_profile
+    ${whereString}
     ORDER BY ${finalSortBy} ${finalSortOrder}
-    LIMIT ? OFFSET ?
+    LIMIT ?
+    OFFSET ?
   `;
 
-  params.push(limit, offset);
-  const stats = await database.all(query, params);
-  
-  // Don't close the database - managed by unified system
+  const stats = await database.all<PlayerStat[]>(query, [...queryParams, limitNumber, offset]);
+
   return { stats, totalPlayers };
 }
 
 // Optimized query functions for high-traffic scenarios
 export async function getPlayerStatsOptimized(playerName: string): Promise<PlayerStat | null> {
+  const cacheKey = `player_stats:${playerName}`;
+  const cachedData = getCachedQuery(cacheKey);
+  if (cachedData) {
+    return cachedData as PlayerStat | null;
+  }
+
   const database = await getDb();
-  
-  // Use prepared statement for better performance
-  const stmt = await database.prepare(`
-    SELECT 
-      m.player_id as player_name,
-      m.total_hands as hands_played,
-      CASE 
-        WHEN m.net_win LIKE "$%" THEN CAST(REPLACE(REPLACE(m.net_win, "$", ""), ",", "") AS REAL)
-        ELSE 0 
-      END as net_win_chips,
-      m.net_win_bb,
-      CASE 
-        WHEN m.total_hands > 0 THEN ROUND((m.net_win_bb / m.total_hands) * 100, 2)
-        ELSE 0 
-      END as win_rate_percent,
-      m.vpip as preflop_vpip,
-      m.pfr as preflop_pfr,
-      COALESCE(ps.avg_action_score, 0) as postflop_aggression,
-      CASE 
-        WHEN m.total_hands > 0 THEN ROUND((m.net_win_bb / m.total_hands) * 100, 2)
-        ELSE 0 
-      END as showdown_win_percent,
-      m.updated_at as last_updated
-    FROM main m
-    LEFT JOIN postflop_scores ps ON REPLACE(m.player_id, '/', '-') = ps.player
-    WHERE LOWER(m.player_id) = LOWER(?)
-    LIMIT 1
-  `);
+  const query = `SELECT * FROM player_profile WHERE player_name_normalized = ?`;
   
   try {
-    const result = await stmt.get(playerName);
-    return result;
-  } finally {
-    await stmt.finalize();
+    const result = await database.get<PlayerStat>(query, [playerName.toLowerCase().replace(/[-/]/g, '')]);
+    setCachedQuery(cacheKey, result ?? null);
+    return result ?? null;
+  } catch (error) {
+    console.error(`Error fetching optimized stats for ${playerName}:`, error);
+    return null;
   }
 }
 
 // Batch operations for handling multiple queries efficiently
 export async function batchPlayerLookup(playerNames: string[]): Promise<PlayerStat[]> {
+  if (playerNames.length === 0) {
+    return [];
+  }
+  
+  const normalizedNames = playerNames.map(name => name.toLowerCase().replace(/[-/]/g, ''));
+  const placeholders = normalizedNames.map(() => '?').join(',');
+  
   const database = await getDb();
-  
-  const placeholders = playerNames.map(() => '?').join(',');
-  const lowerNames = playerNames.map(name => name.toLowerCase());
-  
-  const results = await database.all(`
-    SELECT 
-      m.player_id as player_name,
-      m.total_hands as hands_played,
-      CASE 
-        WHEN m.net_win LIKE "$%" THEN CAST(REPLACE(REPLACE(m.net_win, "$", ""), ",", "") AS REAL)
-        ELSE 0 
-      END as net_win_chips,
-      m.net_win_bb,
-      CASE 
-        WHEN m.total_hands > 0 THEN ROUND((m.net_win_bb / m.total_hands) * 100, 2)
-        ELSE 0 
-      END as win_rate_percent,
-      m.vpip as preflop_vpip,
-      m.pfr as preflop_pfr,
-      COALESCE(ps.avg_action_score, 0) as postflop_aggression,
-      CASE 
-        WHEN m.total_hands > 0 THEN ROUND((m.net_win_bb / m.total_hands) * 100, 2)
-        ELSE 0 
-      END as showdown_win_percent
-    FROM main m
-    LEFT JOIN postflop_scores ps ON REPLACE(m.player_id, '/', '-') = ps.player
-    WHERE LOWER(m.player_id) IN (${placeholders})
-  `, lowerNames);
-  
-  return results;
+  const query = `SELECT * FROM player_profile WHERE player_name_normalized IN (${placeholders})`;
+
+  try {
+    const results = await database.all<PlayerStat[]>(query, normalizedNames);
+    return results;
+  } catch (error) {
+    console.error('Batch player lookup error:', error);
+    return [];
+  }
 }
 
 // Win rate distribution analysis (only real players)
@@ -612,4 +536,41 @@ export async function getWinRateDistribution() {
     distribution,
     summary: totalStats
   };
+}
+
+export async function getLiveMonitoringData() {
+  const database = await getDb();
+  try {
+    const recentHands = await database.all(`
+    `);
+
+    const activeTables = await database.all(`
+    `);
+    
+    const highValuePlayers = await database.all(`
+    `);
+
+    return {
+      recentHands,
+      activeTables,
+      highValuePlayers,
+    };
+  } catch (error) {
+    console.error('Error fetching live monitoring data:', error);
+    return null;
+  }
+}
+
+export async function getGlobalStats() {
+  const cacheKey = 'global_stats';
+  const cachedData = getCachedQuery(cacheKey);
+  if (cachedData) return cachedData as Record<string, number>;
+
+  const database = await getDb();
+  const query = `
+  `;
+  const result = await database.get<Record<string, number>>(query);
+
+  setCachedQuery(cacheKey, result);
+  return result;
 } 

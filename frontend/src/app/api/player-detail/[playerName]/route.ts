@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiDb, getCoinpokerPlayers, closeDb } from '../../../../lib/database-api-helper';
 
+// This interface should be shared, but for now, we define it here to fix the build.
+interface RealHandAction {
+  hand_id: string;
+  player_id: string;
+  position: string;
+  street: string;
+  action_type: string;
+  amount: number;
+  hole_cards: string;
+  community_cards: string;
+  pot_before: number;
+  money_won: number;
+  stakes: string;
+  player_intention: string;
+  timestamp: string;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ playerName: string }> }
@@ -52,36 +69,39 @@ export async function GET(
 
     // Since we don't have detailed hand data in the new structure,
     // we'll create simulated hand history based on the player's stats
-    const generateMockHandData = (stats: any) => {
-      const hands = [];
+    const generateMockHandData = (stats: any): RealHandAction[] => {
+      const hands: RealHandAction[] = [];
       const handsToShow = Math.min(50, stats.total_hands);
       
       for (let i = 0; i < handsToShow; i++) {
         const randomDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+        const street = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'][Math.floor(Math.random() * 4)];
+        const action = ['bet', 'raise', 'call', 'check', 'fold'][Math.floor(Math.random() * 5)];
+        
         hands.push({
           hand_id: `sim_${i + 1}`,
+          player_id: stats.player_name,
+          position: ['SB', 'BB', 'UTG', 'MP', 'CO', 'BTN'][Math.floor(Math.random() * 6)],
+          street: street,
+          action_type: action,
+          amount: action === 'bet' || action === 'raise' ? Math.random() * 100 : 0,
+          hole_cards: 'As Kh', // Mock cards
+          community_cards: generateRandomBoard(),
+          pot_before: Math.random() * 200,
           money_won: Math.random() > 0.5 ? Math.random() * 1000 - 500 : 0,
-          j_score: Math.random() * 100,
-          score_preflop: 50, // Default value since avg_score_preflop doesn't exist
-          score_postflop: 50, // Default value since avg_score_postflop doesn't exist
-          created_ts: randomDate.toISOString(),
-          game_id: `game_${Math.floor(Math.random() * 1000)}`,
-          played_date: randomDate.toISOString().split('T')[0],
-          num_players: Math.floor(Math.random() * 6) + 2,
-          data_json: `{"stakes": {"bb_chips": 100}}`
+          stakes: '1/2',
+          player_intention: 'value',
+          timestamp: randomDate.toISOString(),
         });
       }
       
-      return hands.sort((a, b) => new Date(b.created_ts).getTime() - new Date(a.created_ts).getTime());
+      return hands.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     };
 
     const handData = generateMockHandData(playerStats);
 
     // Calculate additional statistics
     const totalHands = handData.length;
-    const avgJScore = totalHands > 0 
-      ? handData.reduce((sum, hand) => sum + (hand.j_score || 0), 0) / totalHands
-      : 0;
 
     const winningHands = handData.filter(hand => hand.money_won > 0).length;
     const losingHands = handData.filter(hand => hand.money_won < 0).length;
@@ -89,11 +109,11 @@ export async function GET(
 
     // Calculate performance over time for chart
     let cumulativeBB = 0;
-    const performanceData = handData.reverse().map((hand, index) => {
+    const performanceData = handData.slice().reverse().map((hand) => {
       const sessionBB = (hand.money_won || 0) / 100; // Assuming bb = 100 chips
       cumulativeBB += sessionBB;
       return {
-        date: hand.played_date,
+        date: hand.timestamp.split('T')[0],
         cumulative_bb: Math.round(cumulativeBB * 100) / 100,
         session_bb: Math.round(sessionBB * 100) / 100
       };
@@ -125,7 +145,7 @@ export async function GET(
       ...playerStats,
       
       // Additional calculated stats
-      avg_j_score: Math.round(avgJScore * 100) / 100,
+      avg_j_score: Math.round(Math.random() * 20 + 70), // Mock score
       
       // Use actual scores from database
       avg_score_preflop: playerStats.avg_preflop_score || 0,
@@ -152,17 +172,8 @@ export async function GET(
       intention_chart_data: generateIntentionData(playerStats),
       performance_chart_data: performanceData,
       
-      // Recent hands (simulated)
-      recent_hands: handData.slice(0, 20).map(hand => ({
-        hand_id: hand.hand_id,
-        game_id: hand.game_id,
-        played_date: hand.played_date,
-        num_players: hand.num_players,
-        created_ts: hand.created_ts,
-        pot_bb: Math.round(Math.random() * 50 + 10),
-        winners: Math.random() > 0.5 ? playerName : 'Other Player',
-        board: generateRandomBoard()
-      }))
+      // Recent hands (simulated) - now uses the full RealHandAction structure
+      recent_hands: handData.slice(0, 20)
     };
 
     console.log('Returning player data with', Object.keys(response).length, 'fields');
@@ -199,4 +210,21 @@ function generateRandomBoard(): string {
   }
   
   return cards.join(' ');
+}
+
+// Helper types from other files that might be needed
+interface RealHandAction {
+  hand_id: string;
+  player_id: string;
+  position: string;
+  street: string;
+  action_type: string;
+  amount: number;
+  hole_cards: string;
+  community_cards: string;
+  pot_before: number;
+  money_won: number;
+  stakes: string;
+  player_intention: string;
+  timestamp: string;
 } 

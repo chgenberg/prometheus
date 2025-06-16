@@ -106,7 +106,7 @@ function HomeContent() {
       case 'game-analysis':
         return (
           <div className="space-y-8">
-            <HandHistorySection handCount={summary.hand_count} />
+            <HandHistorySection />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <WinRateAnalysis />
               <PostflopAnalysis />

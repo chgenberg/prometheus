@@ -28,11 +28,13 @@ interface HandHistoryStats {
 }
 
 interface Props {
-  handCount: number;
+  playerName?: string;
+  hands: RealHandAction[];
+  totalHands: number;
 }
 
-export default function HandHistorySection({ handCount }: Props) {
-  const [handHistory, setHandHistory] = useState<RealHandAction[]>([]);
+export default function HandHistorySection({ playerName, hands, totalHands }: Props) {
+  const [handHistory, setHandHistory] = useState<RealHandAction[]>(hands);
   const [stats, setStats] = useState<HandHistoryStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +46,7 @@ export default function HandHistorySection({ handCount }: Props) {
   const fetchHandHistory = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/hand-history?limit=50');
+      const response = await fetch(`/api/hand-history?limit=50${playerName ? `&playerName=${playerName}` : ''}`);
       if (!response.ok) throw new Error('Failed to fetch hand history');
       
       const data = await response.json();
@@ -113,7 +115,7 @@ export default function HandHistorySection({ handCount }: Props) {
             </span>
           </h3>
           <p className="text-gray-400">
-            {stats ? `${stats.total_actions.toLocaleString()} actions from ${stats.total_hands.toLocaleString()} hands by ${stats.players_analyzed} players` : 'Loading statistics...'}
+            {stats ? `${stats.total_actions.toLocaleString()} actions from ${totalHands.toLocaleString()} hands by ${stats.players_analyzed} players` : 'Loading statistics...'}
           </p>
         </div>
       </div>
@@ -126,7 +128,7 @@ export default function HandHistorySection({ handCount }: Props) {
               <Database className="h-5 w-5 text-blue-500" />
               <div>
                 <p className="text-sm text-blue-400">Total Hands</p>
-                <p className="text-xl font-bold text-white">{stats.total_hands.toLocaleString()}</p>
+                <p className="text-xl font-bold text-white">{totalHands.toLocaleString()}</p>
               </div>
             </div>
           </div>

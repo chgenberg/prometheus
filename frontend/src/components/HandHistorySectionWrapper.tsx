@@ -5,18 +5,28 @@ import { ChevronDown, ChevronUp, Activity, PieChart } from 'lucide-react';
 import HandHistorySection from './HandHistorySection';
 import HandHistoryGuideModal from './HandHistoryGuideModal';
 
-interface HandHistorySectionProps {
-  handCount: number;
-}
-
-export default function HandHistorySectionWrapper({ handCount }: HandHistorySectionProps) {
+export default function HandHistorySectionWrapper() {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [handCount, setHandCount] = useState(0);
+  const [hands, setHands] = useState([]);
 
   // Collapse after first client render to avoid hydration mismatch
   useEffect(() => {
     setIsExpanded(false);
   }, []);
+
+  useEffect(() => {
+    if (isExpanded) {
+      // Fetch initial data when component expands
+      fetch('/api/hand-history?limit=50')
+        .then(res => res.json())
+        .then(data => {
+          setHands(data.hands || []);
+          setHandCount(data.stats?.total_hands || 0);
+        });
+    }
+  }, [isExpanded]);
 
   if (!isExpanded) {
     return (
@@ -89,7 +99,7 @@ export default function HandHistorySectionWrapper({ handCount }: HandHistorySect
       </div>
 
       {/* Actual analysis component */}
-      <HandHistorySection playerName="" hands={[]} totalHands={handCount} />
+      <HandHistorySection hands={hands} totalHands={handCount} />
 
       <HandHistoryGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
     </div>

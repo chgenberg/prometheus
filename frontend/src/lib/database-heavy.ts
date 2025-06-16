@@ -1,36 +1,46 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
+import fs from 'fs';
 
-// let db: Database | null = null; // Ta bort global variabel för att undvika problem i serverless-miljö
+// Cached database instance to avoid re-opening the database
+let dbInstance: Database | null = null;
 
 // Initialize database connection
 export async function getHeavyDb(): Promise<Database> {
-  // if (db) {
-  //   return db;
-  // }
+  if (dbInstance) {
+    return dbInstance;
+  }
 
-  console.log('Initializing heavy database connection...');
-  
-  // Try different paths for different environments
+  // Try multiple possible paths for the database
   const possiblePaths = [
-    path.join(process.cwd(), 'frontend', 'heavy_analysis3.db'),
-    path.join(process.cwd(), 'heavy_analysis3.db'),
-    path.join(__dirname, '..', '..', '..', 'heavy_analysis3.db'),
+    path.join(process.cwd(), 'heavy_analysis3.db'), // For scripts running from frontend root
+    path.join(process.cwd(), '..', 'heavy_analysis3.db'), // For scripts running from a deeper folder
     './heavy_analysis3.db',
-    './frontend/heavy_analysis3.db'
   ];
   
-  const dbPath = possiblePaths[0];
-  console.log('Heavy DB trying paths:', possiblePaths);
+  let dbPath: string | undefined = possiblePaths.find(p => fs.existsSync(p));
+
+  if (!dbPath) {
+    // Special case for Vercel deployment where cwd is /var/task
+    if (process.env.VERCEL) {
+        dbPath = path.join(process.cwd(), 'heavy_analysis3.db');
+    } else {
+        console.error('Heavy DB not found in any of the expected locations:', possiblePaths);
+        throw new Error('heavy_analysis3.db not found.');
+    }
+  }
   
+  console.log(`Heavy DB connection initialized at: ${dbPath}`);
+
   try {
-    const db = await open({ // Skapa en ny anslutning varje gång
+    const db = await open({
       filename: dbPath,
-      driver: sqlite3.Database
+      driver: sqlite3.Database,
+      mode: sqlite3.OPEN_READONLY, // Open in read-only mode for safety
     });
     
-    console.log('Heavy database connection initialized successfully');
+    dbInstance = db; // Cache the instance
     return db;
   } catch (error) {
     console.error('Failed to initialize heavy database:', error);

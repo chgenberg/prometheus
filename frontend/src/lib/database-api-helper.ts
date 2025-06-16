@@ -56,13 +56,29 @@ export async function closeDb(db: Database): Promise<void> {
   }
 }
 
+// Define a type for our player object for better type safety
+export interface Player {
+  player_id: string;
+  total_hands: number;
+  vpip: number;
+  pfr: number;
+  bad_actor_score: number;
+  intention_score: number;
+  collution_score: number;
+  avg_preflop_score: number;
+  avg_postflop_score: number;
+  net_win: number;
+  net_win_bb: number;
+  updated_at: string;
+}
+
 // Helper to get Coinpoker players with proper filtering
-export async function getCoinpokerPlayers(db: Database, limit: number = 200, additionalWhere: string = ''): Promise<Record<string, unknown>[]> {
+export async function getCoinpokerPlayers(db: Database, limit: number = 200, additionalWhere: string = ''): Promise<Player[]> {
   const whereClause = additionalWhere 
     ? `WHERE player_id LIKE 'coinpoker/%' AND ${additionalWhere}`
     : `WHERE player_id LIKE 'coinpoker/%'`;
     
-  const players = await db.all(`
+  const players = await db.all<Player[]>(`
     SELECT 
       player_id,
       total_hands,
@@ -82,7 +98,7 @@ export async function getCoinpokerPlayers(db: Database, limit: number = 200, add
     LIMIT ?
   `, [limit]);
   
-  return players as Record<string, unknown>[];
+  return players;
 }
 
 // Helper for session data (if exists)

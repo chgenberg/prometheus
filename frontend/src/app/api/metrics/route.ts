@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
+import { getApiDb, closeDb, getCoinpokerPlayers, Player } from '../../../lib/database-api-helper';
 
 interface DatabaseMetrics {
   totalPlayers: number;

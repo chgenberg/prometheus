@@ -1002,7 +1002,7 @@ This ranking shows the ${categoryTitle.toLowerCase()} leaders in our database. $
                     net_win_bb: `${playerData.player.net_win_bb} BB`,
                     vpip: `${playerData.player.preflop_vpip}%`,
                     pfr: `${playerData.player.preflop_pfr}%`,
-                    aggression: playerData.player.postflop_aggression.toFixed(1),
+                    aggression: (playerData.player.postflop_aggression ?? 0).toFixed(1),
                     showdown_win: `${playerData.player.showdown_win_percent}%`,
                     rank: playerData.rankInfo ? `${playerData.rankInfo.win_rate_rank}/${playerData.rankInfo.total_players}` : 'N/A'
                   },
@@ -1010,7 +1010,7 @@ This ranking shows the ${categoryTitle.toLowerCase()} leaders in our database. $
                     playerStats: [
                       { name: 'VPIP', value: playerData.player.preflop_vpip, average: playerData.averages.avg_vpip },
                       { name: 'PFR', value: playerData.player.preflop_pfr, average: playerData.averages.avg_pfr },
-                      { name: 'Aggression', value: playerData.player.postflop_aggression * 10, average: playerData.averages.avg_aggression * 10 },
+                      { name: 'Aggression', value: (playerData.player.postflop_aggression ?? 0) * 10, average: playerData.averages.avg_aggression * 10 },
                       { name: 'Showdown Win', value: playerData.player.showdown_win_percent, average: playerData.averages.avg_showdown },
                       { name: 'Win Rate', value: playerData.player.win_rate_percent, average: playerData.averages.avg_win_rate }
                     ]
@@ -1050,7 +1050,7 @@ This ranking shows the ${categoryTitle.toLowerCase()} leaders in our database. $
                     net_win_bb: `${playerData.player.net_win_bb} BB`,
                     vpip: `${playerData.player.preflop_vpip}%`,
                     pfr: `${playerData.player.preflop_pfr}%`,
-                    aggression: playerData.player.postflop_aggression.toFixed(1),
+                    aggression: (playerData.player.postflop_aggression ?? 0).toFixed(1),
                     showdown_win: `${playerData.player.showdown_win_percent}%`,
                     rank: playerData.rankInfo ? `${playerData.rankInfo.win_rate_rank}/${playerData.rankInfo.total_players}` : 'N/A'
                   },
@@ -1058,7 +1058,7 @@ This ranking shows the ${categoryTitle.toLowerCase()} leaders in our database. $
                     playerStats: [
                       { name: 'VPIP', value: playerData.player.preflop_vpip, average: playerData.averages.avg_vpip },
                       { name: 'PFR', value: playerData.player.preflop_pfr, average: playerData.averages.avg_pfr },
-                      { name: 'Aggression', value: playerData.player.postflop_aggression * 10, average: playerData.averages.avg_aggression * 10 },
+                      { name: 'Aggression', value: (playerData.player.postflop_aggression ?? 0) * 10, average: playerData.averages.avg_aggression * 10 },
                       { name: 'Showdown Win', value: playerData.player.showdown_win_percent, average: playerData.averages.avg_showdown },
                       { name: 'Win Rate', value: playerData.player.win_rate_percent, average: playerData.averages.avg_win_rate }
                     ]
