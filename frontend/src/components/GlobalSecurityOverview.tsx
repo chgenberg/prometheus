@@ -60,14 +60,19 @@ interface SecurityData {
 // Fetch real security data from API
 const fetchSecurityData = async (): Promise<SecurityData | null> => {
   try {
-    const response = await fetch('/api/security-overview', {
+    // Create a timeout promise for better browser compatibility
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 8000); // 8 second timeout
+    });
+
+    const fetchPromise = fetch('/api/security-overview', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-      },
-      // Add timeout and retry logic
-      signal: AbortSignal.timeout(10000) // 10 second timeout
+      }
     });
+
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -267,17 +272,24 @@ export default function GlobalSecurityOverview() {
   // Fetch real-time activities
   const fetchRealTimeActivities = async () => {
     try {
-      const response = await fetch('/api/real-time-activity?limit=8', {
+      // Create a timeout promise for better browser compatibility
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 6000); // 6 second timeout
+      });
+
+      const fetchPromise = fetch('/api/real-time-activity?limit=8', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(8000) // 8 second timeout
+        }
       });
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
       
       if (response.ok) {
         const data = await response.json();
-        setRealTimeActivities(data.activities || []);
+        // API returns array directly, not wrapped in activities property
+        setRealTimeActivities(Array.isArray(data) ? data : data.activities || []);
       } else {
         console.warn('Real-time activities API returned non-OK status:', response.status);
         // Keep existing activities instead of clearing them
