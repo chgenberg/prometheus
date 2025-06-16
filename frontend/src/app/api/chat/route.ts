@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { openDb, getCachedQuery, setCachedQuery, getPlayerStatsOptimized, batchPlayerLookup } from '../../../lib/database-unified';
+import { openDb, getCachedQuery, setCachedQuery, getPlayerStatsOptimized, batchPlayerLookup, PlayerStat } from '../../../lib/database-unified';
 import { getPlayerStatsQuery, getPlayerSearchQuery, getPlayerAveragesQuery, getPlayerRankQuery } from '../../../lib/database-migration';
 
 // Initialize OpenAI with environment variable or fallback
@@ -67,6 +67,30 @@ interface ChatResponse {
   type: 'general' | 'database';
   content: string;
   data?: any;
+}
+
+// Add interface for player averages
+interface PlayerAverages {
+  avg_win_rate: number;
+  avg_vpip: number;
+  avg_pfr: number;
+  avg_aggression: number;
+  avg_showdown: number;
+}
+
+// Interface for player stats result with cache info
+interface PlayerStatsResult {
+  player: PlayerStat;
+  averages: PlayerAverages;
+  rankInfo: Record<string, unknown>;
+  comparison: {
+    win_rate_vs_avg: number;
+    vpip_vs_avg: number;
+    pfr_vs_avg: number;
+    aggression_vs_avg: number;
+    showdown_vs_avg: number;
+  };
+  fromCache?: boolean;
 }
 
 // Enhanced function to determine if the question is about database/player analysis
@@ -330,11 +354,11 @@ ${randomPlayers.map((player, index) =>
 }
 
 // Optimized function to get comprehensive player statistics with caching
-async function getPlayerStats(playerName: string) {
+async function getPlayerStats(playerName: string): Promise<PlayerStatsResult | null> {
   const cacheKey = `player_stats_${playerName.toLowerCase()}`;
   
   // Check cache first
-  const cached = getCachedQuery(cacheKey);
+  const cached = getCachedQuery(cacheKey) as PlayerStatsResult | null;
   if (cached) {
     cacheHits++;
     return { ...cached, fromCache: true };
@@ -354,11 +378,11 @@ async function getPlayerStats(playerName: string) {
     
     // Get average stats for comparison (cache this separately as it's expensive)
     const avgCacheKey = 'player_averages';
-    let averages = getCachedQuery(avgCacheKey);
+    let averages = getCachedQuery(avgCacheKey) as PlayerAverages | null;
     
     if (!averages) {
       const { query: avgQuery, params: avgParams } = getPlayerAveragesQuery(100);
-      averages = await db.get(avgQuery, avgParams);
+      averages = await db.get(avgQuery, avgParams) as PlayerAverages;
       
       // Cache averages for 10 minutes (they don't change often)
       setCachedQuery(avgCacheKey, averages, 10 * 60 * 1000);
@@ -366,18 +390,18 @@ async function getPlayerStats(playerName: string) {
     
     // Get rank information
     const { query: rankQuery, params: rankParams } = getPlayerRankQuery(playerName, player.win_rate_percent, 100);
-    const rankInfo = await db.get(rankQuery, rankParams);
+    const rankInfo = await db.get(rankQuery, rankParams) as Record<string, unknown>;
     
-    const result = {
+    const result: PlayerStatsResult = {
       player,
       averages,
       rankInfo,
       comparison: {
         win_rate_vs_avg: player.win_rate_percent - averages.avg_win_rate,
-        vpip_vs_avg: player.preflop_vpip - averages.avg_vpip,
-        pfr_vs_avg: player.preflop_pfr - averages.avg_pfr,
-        aggression_vs_avg: player.postflop_aggression - averages.avg_aggression,
-        showdown_vs_avg: player.showdown_win_percent - averages.avg_showdown
+        vpip_vs_avg: (player.preflop_vpip ?? 0) - averages.avg_vpip,
+        pfr_vs_avg: (player.preflop_pfr ?? 0) - averages.avg_pfr,
+        aggression_vs_avg: (player.postflop_aggression ?? 0) - averages.avg_aggression,
+        showdown_vs_avg: (player.showdown_win_percent ?? 0) - averages.avg_showdown
       }
     };
     
@@ -928,10 +952,10 @@ This ranking shows the ${categoryTitle.toLowerCase()} leaders in our database. $
                       hands_played: player1.hands_played,
                       win_rate: player1.win_rate_percent,
                       net_win_bb: player1.net_win_bb,
-                      vpip: player1.preflop_vpip,
-                      pfr: player1.preflop_pfr,
-                      aggression: player1.postflop_aggression,
-                      showdown_win: player1.showdown_win_percent
+                      vpip: player1.preflop_vpip ?? 0,
+                      pfr: player1.preflop_pfr ?? 0,
+                      aggression: player1.postflop_aggression ?? 0,
+                      showdown_win: player1.showdown_win_percent ?? 0
                     }
                   },
                   player2: {
@@ -940,10 +964,10 @@ This ranking shows the ${categoryTitle.toLowerCase()} leaders in our database. $
                       hands_played: player2.hands_played,
                       win_rate: player2.win_rate_percent,
                       net_win_bb: player2.net_win_bb,
-                      vpip: player2.preflop_vpip,
-                      pfr: player2.preflop_pfr,
-                      aggression: player2.postflop_aggression,
-                      showdown_win: player2.showdown_win_percent
+                      vpip: player2.preflop_vpip ?? 0,
+                      pfr: player2.preflop_pfr ?? 0,
+                      aggression: player2.postflop_aggression ?? 0,
+                      showdown_win: player2.showdown_win_percent ?? 0
                     }
                   },
                   comparison

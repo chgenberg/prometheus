@@ -21,7 +21,7 @@ export async function getHeavyDb(): Promise<Database> {
     './frontend/heavy_analysis3.db'
   ];
   
-  let dbPath = possiblePaths[0];
+  const dbPath = possiblePaths[0];
   console.log('Heavy DB trying paths:', possiblePaths);
   
   try {

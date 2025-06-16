@@ -22,13 +22,13 @@ export async function getApiDb(): Promise<Database> {
   // Check which path exists
   for (const testPath of possiblePaths) {
     try {
-      const fs = require('fs');
+      const fs = await import('fs');
       if (fs.existsSync(testPath)) {
         dbPath = testPath;
         console.log(`Database found at: ${dbPath}`);
         break;
       }
-    } catch (error) {
+    } catch {
       // Continue to next path
     }
   }
@@ -57,7 +57,7 @@ export async function closeDb(db: Database): Promise<void> {
 }
 
 // Helper to get Coinpoker players with proper filtering
-export async function getCoinpokerPlayers(db: Database, limit: number = 200, additionalWhere: string = ''): Promise<any[]> {
+export async function getCoinpokerPlayers(db: Database, limit: number = 200, additionalWhere: string = ''): Promise<Record<string, unknown>[]> {
   const whereClause = additionalWhere 
     ? `WHERE player_id LIKE 'coinpoker/%' AND ${additionalWhere}`
     : `WHERE player_id LIKE 'coinpoker/%'`;
@@ -86,7 +86,7 @@ export async function getCoinpokerPlayers(db: Database, limit: number = 200, add
 }
 
 // Helper for session data (if exists)
-export async function getSessionData(db: Database, playerId?: string): Promise<any[]> {
+export async function getSessionData(db: Database, playerId?: string): Promise<Record<string, unknown>[]> {
   const query = playerId 
     ? `SELECT * FROM session_analysis WHERE player_id = ? ORDER BY session_start DESC LIMIT 20`
     : `SELECT * FROM session_analysis WHERE player_id LIKE 'coinpoker/%' ORDER BY session_start DESC LIMIT 50`;
@@ -102,7 +102,7 @@ export async function getSessionData(db: Database, playerId?: string): Promise<a
 }
 
 // Helper for detailed actions (if exists)
-export async function getDetailedActions(db: Database, playerId?: string, limit: number = 100): Promise<any[]> {
+export async function getDetailedActions(db: Database, playerId?: string, limit: number = 100): Promise<Record<string, unknown>[]> {
   const query = playerId
     ? `SELECT * FROM detailed_actions WHERE player_id = ? ORDER BY created_at DESC LIMIT ?`
     : `SELECT * FROM detailed_actions WHERE player_id LIKE 'coinpoker/%' ORDER BY created_at DESC LIMIT ?`;

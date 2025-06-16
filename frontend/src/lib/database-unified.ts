@@ -35,7 +35,7 @@ async function initializeDatabase(): Promise<Database> {
     './frontend/heavy_analysis3.db'
   ];
   
-  let dbPath = possiblePaths[0];
+  const dbPath = possiblePaths[0];
   console.log('Trying database paths:', possiblePaths);
 
   try {
@@ -110,7 +110,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
 
 // Cache management
 interface CacheEntry {
-  data: any;
+  data: unknown;
   timestamp: number;
   ttl: number;
 }
@@ -118,7 +118,7 @@ interface CacheEntry {
 const queryCache = new Map<string, CacheEntry>();
 const CACHE_TTL = process.env.NODE_ENV === 'production' ? 2 * 60 * 1000 : 30 * 1000;
 
-export function getCachedQuery(key: string): any | null {
+export function getCachedQuery(key: string): unknown | null {
   const entry = queryCache.get(key);
   if (!entry) return null;
   
@@ -130,7 +130,7 @@ export function getCachedQuery(key: string): any | null {
   return entry.data;
 }
 
-export function setCachedQuery(key: string, data: any, ttl: number = CACHE_TTL): void {
+export function setCachedQuery(key: string, data: unknown, ttl: number = CACHE_TTL): void {
   if (queryCache.size > 1000) {
     const oldestKey = queryCache.keys().next().value;
     if (oldestKey) {
@@ -180,7 +180,7 @@ export async function closeDatabase(): Promise<void> {
 export const openDb = getDb;
 
 // Database statistics
-export async function getDatabaseStats(): Promise<any> {
+export async function getDatabaseStats(): Promise<Record<string, unknown>> {
   const database = await getDb();
   
   try {
@@ -211,7 +211,7 @@ export async function getDatabaseStats(): Promise<any> {
 }
 
 // Performance metrics
-export async function getPerformanceMetrics(): Promise<any> {
+export async function getPerformanceMetrics(): Promise<Record<string, unknown>> {
   const database = await getDb();
   
   try {
@@ -301,7 +301,7 @@ export async function getAdvancedHandAnalysisSummary() {
   };
 }
 
-export async function getHands(tableSize?: string | null) {
+export async function getHands(_tableSize?: string | null) {
   const database = await getDb();
   let query = `
     SELECT 
@@ -463,7 +463,7 @@ export async function getPlayerStats(
 }
 
 // Optimized query functions for high-traffic scenarios
-export async function getPlayerStatsOptimized(playerName: string): Promise<any> {
+export async function getPlayerStatsOptimized(playerName: string): Promise<PlayerStat | null> {
   const database = await getDb();
   
   // Use prepared statement for better performance
@@ -503,7 +503,7 @@ export async function getPlayerStatsOptimized(playerName: string): Promise<any> 
 }
 
 // Batch operations for handling multiple queries efficiently
-export async function batchPlayerLookup(playerNames: string[]): Promise<any[]> {
+export async function batchPlayerLookup(playerNames: string[]): Promise<PlayerStat[]> {
   const database = await getDb();
   
   const placeholders = playerNames.map(() => '?').join(',');
