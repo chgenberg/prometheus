@@ -301,7 +301,7 @@ export async function getAdvancedHandAnalysisSummary() {
   };
 }
 
-export async function getHands(_: string | null = null) {
+export async function getHands() {
   const database = await getDb();
   let query = `
     SELECT 
