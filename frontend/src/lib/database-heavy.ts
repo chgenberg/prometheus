@@ -31,11 +31,13 @@ export async function getHeavyDb(): Promise<Database> {
     }
   }
   
-  console.log(`Heavy DB connection initialized at: ${dbPath}`);
+  const finalDbPath = dbPath;
+  
+  console.log(`Heavy DB connection initialized at: ${finalDbPath}`);
 
   try {
     const db = await open({
-      filename: dbPath,
+      filename: finalDbPath,
       driver: sqlite3.Database,
       mode: sqlite3.OPEN_READONLY, // Open in read-only mode for safety
     });

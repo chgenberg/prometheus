@@ -29,11 +29,11 @@ interface HandHistoryStats {
 
 interface Props {
   playerName?: string;
-  hands: RealHandAction[];
+  hands?: RealHandAction[];
   totalHands: number;
 }
 
-export default function HandHistorySection({ playerName, hands, totalHands }: Props) {
+export default function HandHistorySection({ playerName, hands = [], totalHands }: Props) {
   const [handHistory, setHandHistory] = useState<RealHandAction[]>(hands);
   const [stats, setStats] = useState<HandHistoryStats | null>(null);
   const [loading, setLoading] = useState(true);

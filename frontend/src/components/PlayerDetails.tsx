@@ -821,7 +821,6 @@ export default function PlayerDetails({ playerName }: PlayerDetailsProps) {
                         {activeTab === 'hands' && (
                             <HandHistorySection 
                                 playerName={playerName} 
-                                hands={playerData.recent_hands || []}
                                 totalHands={playerData.total_hands}
                             />
                         )}

@@ -110,7 +110,7 @@ export async function getSessionData(db: Database, playerId?: string): Promise<R
   const params = playerId ? [playerId] : [];
   
   try {
-    return await db.all(query, params) as Record<string, unknown>[];
+    return await db.all<Record<string, unknown>[]>(query, params);
   } catch {
     console.warn('Session data not available');
     return [];
