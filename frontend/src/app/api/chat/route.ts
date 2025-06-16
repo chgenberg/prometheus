@@ -78,7 +78,7 @@ function isDataQuery(message: string): boolean {
     'which player', 'who has', 'who won', 'most hands', 'best player', 'worst player',
     'top player', 'leading player', 'highest', 'lowest', 'most', 'least',
     'player stats', 'player statistics', 'compare player', 'analyze player',
-    'coinpoker-', 'hands played', 'win rate', 'net win', 'profit', 'loss',
+    'coinpoker/', 'hands played', 'win rate', 'net win', 'profit', 'loss',
     // Swedish equivalents
     'vilken spelare', 'vem har', 'vem vann', 'flest händer', 'bästa spelaren', 'sämsta spelaren',
     'främsta spelaren', 'högsta', 'lägsta', 'mest', 'minst', 'jämför spelare',
@@ -1002,7 +1002,7 @@ This ranking shows the ${categoryTitle.toLowerCase()} leaders in our database. $
           } else {
             response = {
               type: 'database',
-              content: "I understand you want to compare players, but I need specific player names. For example: 'Compare coinpoker-123 with coinpoker-456' or 'How does player-789 compare to the average?'",
+              content: "I understand you want to compare players, but I need specific player names. For example: 'Compare coinpoker/123 with coinpoker/456' or 'How does player-789 compare to the average?'",
             };
           }
         } else {

@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
         MAX(consecutive_losses) as max_consecutive_losses,
         AVG(variance_bb) as avg_variance
       FROM player_variance_windows 
-      WHERE player_id LIKE 'coinpoker-%'
+      WHERE player_id LIKE 'coinpoker/%'
       GROUP BY player_id
       HAVING avg_risk_score > 70
       ORDER BY avg_risk_score DESC
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) as window_count,
         AVG(net_win_window) as avg_performance
       FROM player_variance_windows 
-      WHERE player_id LIKE 'coinpoker-%'
+      WHERE player_id LIKE 'coinpoker/%'
       GROUP BY risk_level
       ORDER BY 
         CASE risk_level

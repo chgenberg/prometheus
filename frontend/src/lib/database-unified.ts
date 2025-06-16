@@ -26,7 +26,17 @@ async function initializeDatabase(): Promise<Database> {
 
   console.log('Initializing database connection...');
 
-  const dbPath = path.join(process.cwd(), 'frontend', 'heavy_analysis.db');
+  // Try different paths for different environments
+  const possiblePaths = [
+    path.join(process.cwd(), 'frontend', 'heavy_analysis3.db'),
+    path.join(process.cwd(), 'heavy_analysis3.db'),
+    path.join(__dirname, '..', '..', '..', 'heavy_analysis3.db'),
+    './heavy_analysis3.db',
+    './frontend/heavy_analysis3.db'
+  ];
+  
+  let dbPath = possiblePaths[0];
+  console.log('Trying database paths:', possiblePaths);
 
   try {
     db = await open({

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, getCachedQuery, setCachedQuery } from '../../../lib/database-unified';
+import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
 
 // Rate limiting för produktion
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
@@ -41,6 +41,7 @@ interface PlayersResponse {
 }
 
 export async function GET(request: NextRequest) {
+  let db;
   try {
     // Rate limiting för produktion
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
@@ -54,270 +55,138 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     
     const query: PlayersQuery = {
-      page: parseInt(searchParams.get('page') || '0'), // Fix: should start from 0 to match frontend
-      limit: Math.min(parseInt(searchParams.get('limit') || '50'), 100), // Fix: default to 50 to match frontend
-      search: searchParams.get('player_name') || searchParams.get('search') || '', // Fix: check both parameter names
-      sortBy: searchParams.get('sortBy') || 'net_win_chips',
+      page: parseInt(searchParams.get('page') || '0'),
+      limit: Math.min(parseInt(searchParams.get('limit') || '50'), 100),
+      search: searchParams.get('player_name') || searchParams.get('search') || '',
+      sortBy: searchParams.get('sortBy') || 'total_hands',
       sortOrder: (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc',
       minHands: searchParams.get('minHands') ? parseInt(searchParams.get('minHands')!) : undefined,
     };
 
-    // Get filter parameters
-    const tableSize = searchParams.get('tableSize');
-    const gameType = searchParams.get('gameType');
+    const offset = query.page * query.limit;
 
-    const offset = query.page * query.limit; // Fix: page is already 0-based from frontend
-
-    // Create cache key that includes ALL filter parameters
-    const allParams = Object.fromEntries(searchParams.entries());
-    const cacheKey = `players_${JSON.stringify({ ...query, ...allParams })}`;
+    db = await getApiDb();
     
-    // Check cache first
-    const cached = getCachedQuery(cacheKey);
-    if (cached) {
-      return NextResponse.json(cached);
+    // Get Coinpoker players using the helper function
+    const allPlayers = await getCoinpokerPlayers(db);
+    
+    if (!allPlayers || allPlayers.length === 0) {
+      return NextResponse.json({
+        players: [],
+        totalCount: 0,
+        hasNextPage: false,
+        page: query.page,
+        limit: query.limit
+      });
     }
 
-    const db = await getDb();
+    // Apply filters
+    let filteredPlayers = allPlayers;
 
-    // Build the main query using the new heavy_analysis.db structure
-    // Use main table as base to get ALL players, then LEFT JOIN with vpip_pfr and postflop_scores
-    let baseQuery = `
-      SELECT 
-        m.player_id as player_name,
-        m.total_hands as hands_played,
-        -- Simulate realistic financial data based on player stats
-        ROUND(
-          CASE 
-            WHEN m.total_hands > 0 THEN
-              -- Base win rate on skill indicators (VPIP/PFR ratio and experience)
-              (CASE 
-                WHEN m.vpip > 0 AND m.pfr > 0 THEN
-                  -- Good PFR/VPIP ratio = better win rate
-                  ((m.pfr / m.vpip) * 15) + 
-                  -- Experience bonus
-                  (m.total_hands / 100.0) + 
-                  -- Random variance
-                  (RANDOM() % 20 - 10)
-                ELSE 
-                  (RANDOM() % 30 - 15)
-              END) * m.total_hands * 2.5  -- Convert to chips (assuming $2.50 per BB)
-            ELSE 0 
-          END, 2
-        ) as net_win_chips,
-        CASE 
-          WHEN m.total_hands > 0 THEN
-            ROUND(
-              CASE 
-                WHEN m.vpip > 0 AND m.pfr > 0 THEN
-                  -- Tight-aggressive players (low VPIP, high PFR ratio) win more
-                  CASE 
-                    WHEN (m.pfr / m.vpip) > 0.7 THEN 8 + (m.total_hands / 200.0) + (RANDOM() % 10 - 5)
-                    WHEN (m.pfr / m.vpip) > 0.5 THEN 4 + (m.total_hands / 300.0) + (RANDOM() % 8 - 4)
-                    WHEN (m.pfr / m.vpip) > 0.3 THEN 1 + (m.total_hands / 400.0) + (RANDOM() % 6 - 3)
-                    ELSE -2 + (m.total_hands / 500.0) + (RANDOM() % 8 - 4)
-                  END
-                ELSE 
-                  (RANDOM() % 10 - 5)
-              END, 2
-            )
-          ELSE 0 
-        END as net_win_bb,
-        CASE 
-          WHEN m.total_hands > 0 THEN
-            ROUND(
-              CASE 
-                WHEN m.vpip > 0 AND m.pfr > 0 THEN
-                  -- Win rate based on playing style
-                  CASE 
-                    WHEN (m.pfr / m.vpip) > 0.7 THEN 65 + (m.total_hands / 50.0) + (RANDOM() % 20 - 10)
-                    WHEN (m.pfr / m.vpip) > 0.5 THEN 55 + (m.total_hands / 80.0) + (RANDOM() % 15 - 7)
-                    WHEN (m.pfr / m.vpip) > 0.3 THEN 50 + (m.total_hands / 100.0) + (RANDOM() % 12 - 6)
-                    ELSE 45 + (m.total_hands / 150.0) + (RANDOM() % 15 - 7)
-                  END
-                ELSE 
-                  50 + (RANDOM() % 20 - 10)
-              END, 1
-            )
-          ELSE 0 
-        END as win_rate_percent,
-        COALESCE(vp.vpip_pct, m.vpip, 0) as preflop_vpip,
-        COALESCE(vp.pfr_pct, m.pfr, 0) as preflop_pfr,
-        COALESCE(ps.avg_action_score, 0) as postflop_aggression,
-        COALESCE(ps.flop_scores, 0) as flop_score,
-        COALESCE(ps.turn_scores, 0) as turn_score,
-        COALESCE(ps.river_scores, 0) as river_score,
-        CASE 
-          WHEN m.total_hands > 0 THEN
-            ROUND(
-              CASE 
-                WHEN m.vpip > 0 AND m.pfr > 0 THEN
-                  -- Showdown win rate based on aggression and experience
-                  CASE 
-                    WHEN (m.pfr / m.vpip) > 0.6 THEN 55 + (m.total_hands / 100.0) + (RANDOM() % 15 - 7)
-                    WHEN (m.pfr / m.vpip) > 0.4 THEN 50 + (m.total_hands / 150.0) + (RANDOM() % 12 - 6)
-                    ELSE 45 + (m.total_hands / 200.0) + (RANDOM() % 10 - 5)
-                  END
-                ELSE 
-                  50 + (RANDOM() % 15 - 7)
-              END, 1
-            )
-          ELSE 0 
-        END as showdown_win_percent,
-        -- Get real table size and game type from detailed_actions table
-        COALESCE(
-          (SELECT ROUND(AVG(da.table_size)) 
-           FROM detailed_actions da 
-           WHERE da.player_id = m.player_id 
-           LIMIT 100), 6
-        ) as num_players,
-                 CASE 
-           WHEN m.vpip < 20 AND m.pfr < 15 THEN 'Tournament' -- Tight play suggests tournament
-           WHEN m.vpip > 30 AND m.pfr > 20 THEN 'Cash Game'  -- Loose play suggests cash game
-           ELSE 'Tournament'                                  -- Default to tournament
-         END as game_type,
-        COALESCE(vp.updated_at, m.updated_at) as last_updated,
-        m.avg_preflop_score,
-        m.avg_postflop_score,
-        -- Use actual scores from the database
-        CASE 
-          WHEN m.intention_score > 75 THEN 'High'
-          WHEN m.intention_score > 50 THEN 'Medium'
-          WHEN m.intention_score > 0 THEN 'Low'
-          ELSE 'N/A'
-        END as intention_score,
-        CASE 
-          WHEN m.collution_score > 75 THEN 'Suspicious'
-          WHEN m.collution_score > 50 THEN 'Monitor'
-          WHEN m.collution_score > 0 THEN 'Clean'
-          ELSE 'N/A'
-        END as collusion_score,
-        CASE 
-          WHEN m.bad_actor_score > 75 THEN 'High Risk'
-          WHEN m.bad_actor_score > 50 THEN 'Medium Risk'
-          WHEN m.bad_actor_score > 0 THEN 'Low Risk'
-          ELSE 'N/A'
-        END as bad_actor_score,
-        COALESCE(pst.bot_score, 0) as bot_score
-      FROM main m
-      LEFT JOIN vpip_pfr vp ON vp.player = m.player_id
-      LEFT JOIN postflop_scores ps ON (
-        ps.player = m.player_id OR 
-        ps.player = REPLACE(m.player_id, '/', '-') OR
-        ps.player = REPLACE(m.player_id, '-', '/')
-      )
-      LEFT JOIN player_stats pst ON (
-        pst.player_id = m.player_id OR 
-        pst.player_id = REPLACE(m.player_id, '/', '-') OR
-        pst.player_id = REPLACE(m.player_id, '-', '/')
-      )
-    `;
-
-    const whereClauses: string[] = [];
-    let queryParams: any[] = [];
-
-    // Filter out non-real players (hand history data and test data)
-    whereClauses.push("m.player_id LIKE 'coinpoker/%'");
-    whereClauses.push("m.total_hands > 0");
-
-    const filterMappings: { [key: string]: string } = {
-      minHands: 'm.total_hands >= ?',
-      maxHands: 'm.total_hands <= ?',
-      minWinRate: 'CASE WHEN m.total_hands > 0 AND m.vpip > 0 AND m.pfr > 0 THEN CASE WHEN (m.pfr / m.vpip) > 0.7 THEN 65 + (m.total_hands / 50.0) WHEN (m.pfr / m.vpip) > 0.5 THEN 55 + (m.total_hands / 80.0) WHEN (m.pfr / m.vpip) > 0.3 THEN 50 + (m.total_hands / 100.0) ELSE 45 + (m.total_hands / 150.0) END ELSE 50 END >= ?',
-      maxWinRate: 'CASE WHEN m.total_hands > 0 AND m.vpip > 0 AND m.pfr > 0 THEN CASE WHEN (m.pfr / m.vpip) > 0.7 THEN 65 + (m.total_hands / 50.0) WHEN (m.pfr / m.vpip) > 0.5 THEN 55 + (m.total_hands / 80.0) WHEN (m.pfr / m.vpip) > 0.3 THEN 50 + (m.total_hands / 100.0) ELSE 45 + (m.total_hands / 150.0) END ELSE 50 END <= ?',
-      minNetWinBB: 'CASE WHEN m.total_hands > 0 AND m.vpip > 0 AND m.pfr > 0 THEN CASE WHEN (m.pfr / m.vpip) > 0.7 THEN 8 + (m.total_hands / 200.0) WHEN (m.pfr / m.vpip) > 0.5 THEN 4 + (m.total_hands / 300.0) WHEN (m.pfr / m.vpip) > 0.3 THEN 1 + (m.total_hands / 400.0) ELSE -2 + (m.total_hands / 500.0) END ELSE 0 END >= ?',
-      maxNetWinBB: 'CASE WHEN m.total_hands > 0 AND m.vpip > 0 AND m.pfr > 0 THEN CASE WHEN (m.pfr / m.vpip) > 0.7 THEN 8 + (m.total_hands / 200.0) WHEN (m.pfr / m.vpip) > 0.5 THEN 4 + (m.total_hands / 300.0) WHEN (m.pfr / m.vpip) > 0.3 THEN 1 + (m.total_hands / 400.0) ELSE -2 + (m.total_hands / 500.0) END ELSE 0 END <= ?',
-      minVPIP: 'COALESCE(vp.vpip_pct, m.vpip, 0) >= ?',
-      maxVPIP: 'COALESCE(vp.vpip_pct, m.vpip, 0) <= ?',
-      minPFR: 'COALESCE(vp.pfr_pct, m.pfr, 0) >= ?',
-      maxPFR: 'COALESCE(vp.pfr_pct, m.pfr, 0) <= ?',
-      minAggression: 'ps.avg_action_score >= ?',
-      maxAggression: 'ps.avg_action_score <= ?',
-      minIntentionScore: 'm.intention_score >= ?',
-      maxIntentionScore: 'm.intention_score <= ?',
-      minBadActorScore: 'm.bad_actor_score >= ?',
-      maxBadActorScore: 'm.bad_actor_score <= ?',
-      minPreflopScore: 'm.avg_preflop_score >= ?',
-      maxPreflopScore: 'm.avg_preflop_score <= ?',
-      minPostflopScore: 'm.avg_postflop_score >= ?',
-      maxPostflopScore: 'm.avg_postflop_score <= ?',
-      tableSize: 'COALESCE((SELECT ROUND(AVG(da.table_size)) FROM detailed_actions da WHERE da.player_id = m.player_id LIMIT 100), 6) = ?',
-      gameType: 'CASE WHEN m.vpip < 20 AND m.pfr < 15 THEN \'Tournament\' WHEN m.vpip > 30 AND m.pfr > 20 THEN \'Cash Game\' ELSE \'Tournament\' END = ?',
-    };
-
-    // Handle standard filters and range filters
-    searchParams.forEach((value, key) => {
-        if (filterMappings[key]) {
-            if (value && value !== 'all') {
-                whereClauses.push(filterMappings[key]);
-                // Special handling for gameType
-                if (key === 'gameType') {
-                    queryParams.push(value === 'tournament' ? 'Tournament' : 'mtt');
-                } else {
-                    queryParams.push(parseFloat(value));
-                }
-            }
-        }
-    });
-    
+    // Search filter
     if (query.search) {
-      whereClauses.push('LOWER(m.player_id) LIKE LOWER(?)');
-      queryParams.push(`%${query.search}%`);
+      filteredPlayers = filteredPlayers.filter(player => 
+        player.player_id.toLowerCase().includes(query.search.toLowerCase())
+      );
     }
 
-    if (whereClauses.length > 0) {
-      baseQuery += ' WHERE ' + whereClauses.join(' AND ');
+    // Min hands filter
+    if (query.minHands) {
+      filteredPlayers = filteredPlayers.filter(player => 
+        (player.total_hands || 0) >= query.minHands!
+      );
     }
 
-    // Get total count for pagination
-    let countQuery = `SELECT COUNT(*) as total FROM main m LEFT JOIN vpip_pfr vp ON vp.player = m.player_id LEFT JOIN postflop_scores ps ON (ps.player = m.player_id OR ps.player = REPLACE(m.player_id, '/', '-') OR ps.player = REPLACE(m.player_id, '-', '/')) LEFT JOIN player_stats pst ON pst.player_id = m.player_id`;
-    if (whereClauses.length > 0) {
-      countQuery += ' WHERE ' + whereClauses.join(' AND ');
-    }
+    // Sorting
+    filteredPlayers.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (query.sortBy) {
+        case 'player_name':
+          aValue = a.player_id || '';
+          bValue = b.player_id || '';
+          break;
+        case 'hands_played':
+        case 'total_hands':
+          aValue = a.total_hands || 0;
+          bValue = b.total_hands || 0;
+          break;
+        case 'net_win_bb':
+          aValue = a.net_win_bb || 0;
+          bValue = b.net_win_bb || 0;
+          break;
+        case 'preflop_vpip':
+        case 'vpip':
+          aValue = a.vpip || 0;
+          bValue = b.vpip || 0;
+          break;
+        case 'preflop_pfr':
+        case 'pfr':
+          aValue = a.pfr || 0;
+          bValue = b.pfr || 0;
+          break;
+        case 'bad_actor_score':
+          aValue = a.bad_actor_score || 0;
+          bValue = b.bad_actor_score || 0;
+          break;
+        case 'intention_score':
+          aValue = a.intention_score || 0;
+          bValue = b.intention_score || 0;
+          break;
+        case 'collusion_score':
+          aValue = a.collution_score || 0;
+          bValue = b.collution_score || 0;
+          break;
+        default:
+          aValue = a.total_hands || 0;
+          bValue = b.total_hands || 0;
+      }
+
+      if (query.sortOrder === 'desc') {
+        return bValue > aValue ? 1 : bValue < aValue ? -1 : 0;
+      } else {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      }
+    });
+
+    const totalCount = filteredPlayers.length;
     
-    const countResult = await db.get(countQuery, queryParams);
-    const totalCount = countResult?.total || 0;
+    // Apply pagination
+    const paginatedPlayers = filteredPlayers.slice(offset, offset + query.limit);
+    
+    // Transform data to match expected format
+    const transformedPlayers = paginatedPlayers.map(player => ({
+      player_name: player.player_id,
+      hands_played: player.total_hands || 0,
+      net_win_chips: Math.round((player.net_win_bb || 0) * 2.5 * 100), // Convert BB to chips
+      net_win_bb: player.net_win_bb || 0,
+      win_rate_percent: player.total_hands > 0 
+        ? Math.round((player.net_win_bb || 0) / player.total_hands * 100 * 100) / 100
+        : 0,
+      preflop_vpip: player.vpip || 0,
+      preflop_pfr: player.pfr || 0,
+      postflop_aggression: player.avg_postflop_score || 0,
+      showdown_win_percent: player.total_hands > 0 ? 50 + Math.random() * 20 - 10 : 0, // Simulated
+      num_players: 6, // Default table size
+      game_type: player.vpip > 25 ? 'Cash Game' : 'Tournament',
+      last_updated: player.updated_at || new Date().toISOString(),
+      avg_preflop_score: player.avg_preflop_score || 0,
+      avg_postflop_score: player.avg_postflop_score || 0,
+      intention_score: player.intention_score || 0,
+      collusion_score: player.collution_score || 0,
+      bad_actor_score: player.bad_actor_score || 0,
+      bot_score: player.bad_actor_score || 0 // Use bad_actor_score as bot_score
+    }));
 
-    // Sorting logic - important to validate sortBy to prevent SQL injection
-    const validSortColumns: { [key: string]: string } = {
-      player_name: 'm.player_id',
-      hands_played: 'm.total_hands',
-      net_win_chips: 'net_win_chips',
-      net_win_bb: 'net_win_bb',
-      win_rate_percent: 'win_rate_percent',
-      preflop_vpip: 'preflop_vpip',
-      preflop_pfr: 'preflop_pfr',
-      postflop_aggression: 'postflop_aggression',
-      bot_score: 'bot_score',
-      avg_preflop_score: 'm.avg_preflop_score',
-      avg_postflop_score: 'm.avg_postflop_score',
-      intention_score: 'm.intention_score',
-      collusion_score: 'm.collusion_score',
-      bad_actor_score: 'm.bad_actor_score',
-    };
-    let sortColumn = 'm.total_hands';
-    if (validSortColumns[query.sortBy]) {
-      sortColumn = validSortColumns[query.sortBy];
-    }
-    const orderClause = ` ORDER BY ${sortColumn} ${query.sortOrder.toUpperCase()}`;
-
-    // Get players with pagination
-    const playersQuery = baseQuery + orderClause + ` LIMIT ? OFFSET ?`;
-    const players = await db.all(playersQuery, [...queryParams, query.limit, offset]);
-
-    // Calculate if there's a next page
     const hasNextPage = offset + query.limit < totalCount;
 
     const response: PlayersResponse = {
-      players: players || [],
+      players: transformedPlayers,
       totalCount,
       hasNextPage,
       page: query.page,
       limit: query.limit
     };
-
-    // Cache the result for 1 minute (data changes frequently)
-    setCachedQuery(cacheKey, response, 60 * 1000);
 
     return NextResponse.json(response);
 
@@ -327,67 +196,41 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch players' },
       { status: 500 }
     );
+  } finally {
+    if (db) {
+      await closeDb(db);
+    }
   }
 }
 
 // Optional: POST endpoint for bulk operations
 export async function POST(request: NextRequest) {
+  let db;
   try {
     const { action, playerIds } = await request.json();
 
     if (action === 'bulk_stats' && Array.isArray(playerIds)) {
-      const db = await getDb();
+      db = await getApiDb();
       
-      // Get stats for multiple players efficiently
-      const placeholders = playerIds.map(() => '?').join(',');
-      const players = await db.all(`
-        SELECT 
-          m.player_id as player_name,
-          m.total_hands as hands_played,
-          CASE 
-            WHEN m.total_hands > 0 AND m.vpip > 0 AND m.pfr > 0 THEN
-              ROUND(
-                CASE 
-                  WHEN (m.pfr / m.vpip) > 0.7 THEN 65 + (m.total_hands / 50.0)
-                  WHEN (m.pfr / m.vpip) > 0.5 THEN 55 + (m.total_hands / 80.0)
-                  WHEN (m.pfr / m.vpip) > 0.3 THEN 50 + (m.total_hands / 100.0)
-                  ELSE 45 + (m.total_hands / 150.0)
-                END, 1
-              )
-            ELSE 50 
-          END as win_rate_percent,
-          CASE 
-            WHEN m.total_hands > 0 AND m.vpip > 0 AND m.pfr > 0 THEN
-              ROUND(
-                CASE 
-                  WHEN (m.pfr / m.vpip) > 0.7 THEN 8 + (m.total_hands / 200.0)
-                  WHEN (m.pfr / m.vpip) > 0.5 THEN 4 + (m.total_hands / 300.0)
-                  WHEN (m.pfr / m.vpip) > 0.3 THEN 1 + (m.total_hands / 400.0)
-                  ELSE -2 + (m.total_hands / 500.0)
-                END, 2
-              )
-            ELSE 0 
-          END as net_win_bb,
-          m.vpip as preflop_vpip,
-          m.pfr as preflop_pfr,
-          COALESCE(ps.avg_action_score, 0) as postflop_aggression,
-          CASE 
-            WHEN m.total_hands > 0 AND m.vpip > 0 AND m.pfr > 0 THEN
-              ROUND(
-                CASE 
-                  WHEN (m.pfr / m.vpip) > 0.6 THEN 55 + (m.total_hands / 100.0)
-                  WHEN (m.pfr / m.vpip) > 0.4 THEN 50 + (m.total_hands / 150.0)
-                  ELSE 45 + (m.total_hands / 200.0)
-                END, 1
-              )
-            ELSE 50 
-          END as showdown_win_percent
-                 FROM main m
-         LEFT JOIN postflop_scores ps ON REPLACE(m.player_id, '/', '-') = ps.player
-         WHERE m.player_id IN (${placeholders})
-      `, playerIds);
+      const allPlayers = await getCoinpokerPlayers(db);
+      const requestedPlayers = allPlayers.filter(player => 
+        playerIds.includes(player.player_id)
+      );
 
-      return NextResponse.json({ players });
+      const transformedPlayers = requestedPlayers.map(player => ({
+        player_name: player.player_id,
+        hands_played: player.total_hands || 0,
+        win_rate_percent: player.total_hands > 0 
+          ? Math.round((player.net_win_bb || 0) / player.total_hands * 100 * 100) / 100
+          : 0,
+        net_win_bb: player.net_win_bb || 0,
+        preflop_vpip: player.vpip || 0,
+        preflop_pfr: player.pfr || 0,
+        postflop_aggression: player.avg_postflop_score || 0,
+        showdown_win_percent: player.total_hands > 0 ? 50 + Math.random() * 20 - 10 : 0
+      }));
+
+      return NextResponse.json({ players: transformedPlayers });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -398,5 +241,9 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to process request' },
       { status: 500 }
     );
+  } finally {
+    if (db) {
+      await closeDb(db);
+    }
   }
 } 

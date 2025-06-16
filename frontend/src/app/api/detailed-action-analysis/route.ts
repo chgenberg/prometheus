@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
         COUNT(DISTINCT hand_id) as unique_hands,
         AVG(CASE WHEN action_type = 'raise' THEN raise_percentage END) as avg_aggression
       FROM detailed_actions 
-      WHERE player_id LIKE 'coinpoker-%'
+      WHERE player_id LIKE 'coinpoker/%'
       GROUP BY player_id
       ORDER BY total_actions DESC
       LIMIT ?
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
         AVG(hand_strength) as avg_hand_strength,
         COUNT(DISTINCT player_id) as unique_players
       FROM detailed_actions 
-      WHERE player_id LIKE 'coinpoker-%' AND player_intention IS NOT NULL
+      WHERE player_id LIKE 'coinpoker/%' AND player_intention IS NOT NULL
       GROUP BY player_intention
       ORDER BY action_count DESC
     `);

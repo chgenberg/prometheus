@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '../../../lib/database-unified';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import path from 'path';
 
 interface BotScoreResult {
     player_id: string;
@@ -16,24 +18,32 @@ interface BotScoreResult {
 }
 
 export async function GET(request: NextRequest) {
-    let db;
     try {
-        db = await getDb();
+        // Direct database connection to heavy_analysis3.db
+        const dbPath = path.join(process.cwd(), '..', 'heavy_analysis3.db');
+        const db = await open({
+            filename: dbPath,
+            driver: sqlite3.Database
+        });
         
-        // Get top players by bot score
+        // Get top players by bot score (using bad_actor_score as bot_score)
         const players = await db.all(`
             SELECT 
                 player_id,
-                bot_score,
+                bad_actor_score as bot_score,
                 vpip,
                 pfr,
-                aggression_factor,
-                total_hands
-            FROM player_stats 
-            WHERE bot_score IS NOT NULL 
-            ORDER BY bot_score DESC 
+                total_hands,
+                intention_score,
+                collution_score
+            FROM main 
+            WHERE player_id LIKE 'coinpoker/%' 
+            AND bad_actor_score IS NOT NULL 
+            ORDER BY bad_actor_score DESC 
             LIMIT 50
         `);
+        
+        await db.close();
         
         if (players.length === 0) {
             return NextResponse.json({
@@ -51,7 +61,7 @@ export async function GET(request: NextRequest) {
         }
         
         // Transform players into BotScoreResult format
-        const results: BotScoreResult[] = players.map(player => {
+        const results: BotScoreResult[] = players.map((player: any) => {
             const score = player.bot_score;
             
             // Classify based on score
@@ -72,7 +82,7 @@ export async function GET(request: NextRequest) {
             // Generate raw scores based on player stats
             const raw_scores = {
                 timing_consistency: Math.min(10, (100 - Math.abs(player.vpip - 25)) / 10),
-                action_patterns: Math.min(10, player.aggression_factor * 2),
+                action_patterns: Math.min(10, (player.intention_score || 50) / 10),
                 statistical_anomaly: Math.min(10, Math.abs(player.vpip - 28) / 3),
                 gto_adherence: Math.min(10, Math.abs(player.pfr - 20) / 2),
                 session_patterns: Math.min(10, Math.min(player.total_hands / 1000, 10))

@@ -12,7 +12,17 @@ export async function getHeavyDb(): Promise<Database> {
 
   console.log('Initializing heavy database connection...');
   
-  const dbPath = path.join(process.cwd(), 'frontend', 'heavy_analysis.db');
+  // Try different paths for different environments
+  const possiblePaths = [
+    path.join(process.cwd(), 'frontend', 'heavy_analysis3.db'),
+    path.join(process.cwd(), 'heavy_analysis3.db'),
+    path.join(__dirname, '..', '..', '..', 'heavy_analysis3.db'),
+    './heavy_analysis3.db',
+    './frontend/heavy_analysis3.db'
+  ];
+  
+  let dbPath = possiblePaths[0];
+  console.log('Heavy DB trying paths:', possiblePaths);
   
   try {
     const db = await open({ // Skapa en ny anslutning varje gång
@@ -173,7 +183,7 @@ export async function getConsolidatedCoinpokerPlayers(): Promise<ConsolidatedPla
       hs.player = REPLACE(ps.player_id, '-', '/')
     )
     
-    WHERE ps.player_id LIKE 'coinpoker-%'
+    WHERE ps.player_id LIKE 'coinpoker/%'
       AND ps.total_hands > 0
     
     ORDER BY ps.total_hands DESC

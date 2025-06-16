@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '../../../lib/database-unified';
+import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
 
 // 🔥 ULTRA-AGGRESSIVE BOT HUNTER
 // Sänkta trösklar för att fånga ALLA potentiella botar
@@ -20,8 +20,9 @@ interface SuspiciousPlayer {
 }
 
 export async function GET() {
+  let db;
   try {
-    const db = await openDb();
+    db = await getApiDb();
     console.log('🔥 ULTRA-AGGRESSIVE BOT HUNTER startar...');
 
     // Analysera ALLA spelare med mer än 50 händer

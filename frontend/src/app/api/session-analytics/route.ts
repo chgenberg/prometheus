@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) as total_sessions,
         AVG(duration_minutes) as avg_session_length
       FROM session_analysis 
-      WHERE player_id LIKE 'coinpoker-%'
+      WHERE player_id LIKE 'coinpoker/%'
       GROUP BY player_id
       ORDER BY avg_bb_per_hour DESC
       LIMIT 10
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         AVG(bb_per_hour) as avg_performance,
         AVG(tilt_events_during_session) as avg_tilt_events
       FROM session_analysis 
-      WHERE player_id LIKE 'coinpoker-%'
+      WHERE player_id LIKE 'coinpoker/%'
       GROUP BY fatigue_level
     `);
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '../../../lib/database-unified';
+import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
 
 interface ActivityEvent {
   id: string;
@@ -12,111 +12,127 @@ interface ActivityEvent {
 }
 
 export async function GET(request: NextRequest) {
+  let db;
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
     
-    const db = await getDb();
+    db = await getApiDb();
 
-    // Get recent high-risk players for activity feed
-    const recentActivity = await db.all(`
-      SELECT 
-        m.player_id as player_name,
-        m.total_hands,
-        m.bad_actor_score,
-        m.intention_score,
-        m.updated_at,
-        COALESCE(vp.hands, m.total_hands, 0) as hands_played,
-        COALESCE(vp.vpip_pct, m.vpip, 0) as vpip,
-        COALESCE(vp.pfr_pct, m.pfr, 0) as pfr,
-        COALESCE(ps.avg_action_score, 0) as postflop_aggression
-      FROM main m
-      LEFT JOIN vpip_pfr vp ON m.player_id = vp.player
-      LEFT JOIN postflop_scores ps ON REPLACE(m.player_id, '/', '-') = ps.player
-      WHERE m.bad_actor_score > 0 OR m.intention_score > 50 OR COALESCE(vp.hands, m.total_hands, 0) > 500
-      ORDER BY m.updated_at DESC, m.bad_actor_score DESC
-      LIMIT ?
-    `, [limit]);
+    // Get all Coinpoker players using standardized helper
+    const allPlayers = await getCoinpokerPlayers(db);
+    
+    if (!allPlayers || allPlayers.length === 0) {
+      return NextResponse.json([]);
+    }
 
-    // Convert database records to activity events
-    const activities: ActivityEvent[] = recentActivity.map((player, index) => {
-      const flags = [];
-      let activityType: ActivityEvent['type'] = 'new_account';
-      let riskLevel: ActivityEvent['risk_level'] = 'Low';
-      
-      // Determine activity type and risk level based on player data
-      if (player.bad_actor_score >= 25) {
-        activityType = 'bot_detected';
-        riskLevel = 'Critical';
-        flags.push('High Bad Actor Score');
-      } else if (player.hands_played > 1000) {
-        activityType = 'high_volume';
-        riskLevel = 'High';
-        flags.push('Very High Volume');
-      } else if (player.postflop_aggression > 90) {
-        activityType = 'suspicious_play';
-        riskLevel = 'High';
-        flags.push('Extreme Aggression');
-      } else if (player.intention_score > 75) {
-        activityType = 'pattern_alert';
-        riskLevel = 'Medium';
-        flags.push('High Intention Score');
-      } else if (player.vpip < 10 || player.vpip > 80) {
-        activityType = 'suspicious_play';
-        riskLevel = 'Medium';
-        flags.push('Extreme VPIP');
-      }
-
-      // Add more flags based on stats
-      if (player.hands_played > 800) flags.push('High Volume');
-      if (player.vpip > 0 && player.pfr > 0) {
-        const vpipPfrRatio = player.pfr / player.vpip;
-        if (vpipPfrRatio > 0.8) flags.push('Perfect GTO Play');
-      }
-      if (player.postflop_aggression > 80) flags.push('High Aggression');
-
-      // Generate timestamp (recent activity)
-      const now = new Date();
-      const activityTime = new Date(now.getTime() - (index * 2 * 60 * 1000)); // 2 minutes apart
-      
-      return {
-        id: `activity_${player.player_name}_${Date.now()}_${index}`,
-        type: activityType,
-        player_name: player.player_name,
-        timestamp: activityTime.toISOString(),
-        risk_level: riskLevel,
-        details: `Player ${player.player_name.split('/')[1] || player.player_name} - ${player.hands_played} hands played`,
-        flags
-      };
-    });
-
-    // Add some system events
-    const systemEvents: ActivityEvent[] = [
-      {
-        id: `system_scan_${Date.now()}`,
-        type: 'pattern_alert',
-        player_name: 'SYSTEM',
-        timestamp: new Date().toISOString(),
-        risk_level: 'Low',
-        details: 'Automated security scan completed',
-        flags: ['System Event']
-      }
-    ];
-
-    const allActivities = [...activities, ...systemEvents]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    // Generate real-time activity events based on player data
+    const activityEvents: ActivityEvent[] = [];
+    
+    // Filter high-risk players for activity feed
+    const highRiskPlayers = allPlayers
+      .filter(player => (player.bad_actor_score || 0) > 0 || (player.intention_score || 0) > 50 || (player.total_hands || 0) > 500)
+      .sort((a, b) => {
+        const aScore = (a.bad_actor_score || 0) + (a.intention_score || 0);
+        const bScore = (b.bad_actor_score || 0) + (b.intention_score || 0);
+        return bScore - aScore;
+      })
       .slice(0, limit);
 
-    return NextResponse.json({
-      activities: allActivities,
-      total_count: allActivities.length,
-      last_updated: new Date().toISOString()
+    // Generate activity events for high-risk players
+    highRiskPlayers.forEach((player, index) => {
+      const now = new Date();
+      const eventTime = new Date(now.getTime() - (index * 60000)); // Events spread over last hour
+
+      let eventType: ActivityEvent['type'] = 'suspicious_play';
+      let riskLevel: ActivityEvent['risk_level'] = 'Low';
+      let details = '';
+      let flags: string[] = [];
+
+      // Determine event type and risk level based on player stats
+      const badActorScore = player.bad_actor_score || 0;
+      const intentionScore = player.intention_score || 0;
+      const totalHands = player.total_hands || 0;
+
+      if (badActorScore > 15) {
+        eventType = 'bot_detected';
+        riskLevel = 'Critical';
+        details = `Bot detection algorithm flagged player with score ${badActorScore}`;
+        flags = ['automated_play', 'timing_patterns', 'bet_sizing_anomaly'];
+      } else if (intentionScore > 70) {
+        eventType = 'pattern_alert';
+        riskLevel = 'High';
+        details = `Suspicious behavioral patterns detected (intention score: ${intentionScore})`;
+        flags = ['behavioral_anomaly', 'statistical_outlier'];
+      } else if (totalHands > 1000) {
+        eventType = 'high_volume';
+        riskLevel = 'Medium';
+        details = `High volume player detected (${totalHands} hands played)`;
+        flags = ['high_volume', 'experienced_player'];
+      } else {
+        eventType = 'new_account';
+        riskLevel = 'Low';
+        details = `New account activity detected`;
+        flags = ['new_account', 'monitoring_required'];
+      }
+
+      activityEvents.push({
+        id: `activity_${Date.now()}_${index}`,
+        type: eventType,
+        player_name: player.player_id,
+        timestamp: eventTime.toISOString(),
+        risk_level: riskLevel,
+        details,
+        flags
+      });
     });
+
+    // Sort by timestamp (most recent first)
+    activityEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    return NextResponse.json(activityEvents.slice(0, limit));
 
   } catch (error) {
     console.error('Real-time activity API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch real-time activity' },
+      { error: 'Failed to fetch real-time activity data' },
+      { status: 500 }
+    );
+  } finally {
+    if (db) {
+      await closeDb(db);
+    }
+  }
+}
+
+// POST endpoint for marking events as reviewed
+export async function POST(request: NextRequest) {
+  try {
+    const { eventId, action } = await request.json();
+    
+    // In a real implementation, you would update the event status in the database
+    // For now, we'll just return success
+    
+    if (action === 'acknowledge') {
+      return NextResponse.json({
+        success: true,
+        message: `Event ${eventId} acknowledged`
+      });
+    } else if (action === 'investigate') {
+      return NextResponse.json({
+        success: true,
+        message: `Investigation started for event ${eventId}`
+      });
+    } else {
+      return NextResponse.json(
+        { error: 'Invalid action' },
+        { status: 400 }
+      );
+    }
+  } catch (error) {
+    console.error('Real-time activity POST error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process action' },
       { status: 500 }
     );
   }

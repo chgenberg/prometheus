@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getHeavySecurityOverview } from '../../../lib/database-heavy';
+import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
 
 interface BotDetectionData {
   suspicious_players: Array<{
@@ -34,10 +34,82 @@ interface BotDetectionData {
 }
 
 export async function GET(request: NextRequest) {
+  let db;
   try {
-    const securityData = await getHeavySecurityOverview();
+    db = await getApiDb();
+    
+    // Get Coinpoker players with security data
+    const players = await getCoinpokerPlayers(db);
+    
+    if (!players || players.length === 0) {
+      // Return fallback data if no players found
+      return NextResponse.json({
+        securityMetrics: {
+          totalPlayers: 0,
+          flaggedPlayers: 0,
+          highRiskPlayers: 0,
+          botLikelihoodRate: 0,
+          avgHandsPerPlayer: 0,
+          criticalThreats: 0,
+          lastUpdate: new Date().toLocaleTimeString()
+        },
+        riskDistribution: [],
+        volumeAnalysis: []
+      });
+    }
 
-    // Add colors for the risk distribution
+    // Calculate security metrics
+    const totalPlayers = players.length;
+    const playersWithScores = players.filter(p => 
+      (p.bad_actor_score !== null && p.bad_actor_score !== undefined) ||
+      (p.intention_score !== null && p.intention_score !== undefined) ||
+      (p.collution_score !== null && p.collution_score !== undefined)
+    );
+
+    const flaggedPlayers = playersWithScores.filter(p => 
+      (p.bad_actor_score || 0) > 50 || 
+      (p.intention_score || 0) > 50 || 
+      (p.collution_score || 0) > 50
+    ).length;
+
+    const highRiskPlayers = playersWithScores.filter(p => 
+      (p.bad_actor_score || 0) > 75 || 
+      (p.intention_score || 0) > 75 || 
+      (p.collution_score || 0) > 75
+    ).length;
+
+    const avgBadActorScore = playersWithScores.length > 0 
+      ? playersWithScores.reduce((sum, p) => sum + (p.bad_actor_score || 0), 0) / playersWithScores.length
+      : 0;
+
+    const avgHandsPerPlayer = players.length > 0 
+      ? players.reduce((sum, p) => sum + (p.total_hands || 0), 0) / players.length
+      : 0;
+
+    // Calculate risk distribution
+    const riskLevels = ['Minimal Risk', 'Low Risk', 'Medium Risk', 'High Risk', 'Critical Risk'];
+    const riskCounts = {
+      'Minimal Risk': 0,
+      'Low Risk': 0,
+      'Medium Risk': 0,
+      'High Risk': 0,
+      'Critical Risk': 0
+    };
+
+    playersWithScores.forEach(player => {
+      const maxScore = Math.max(
+        player.bad_actor_score || 0,
+        player.intention_score || 0,
+        player.collution_score || 0
+      );
+
+      if (maxScore >= 80) riskCounts['Critical Risk']++;
+      else if (maxScore >= 60) riskCounts['High Risk']++;
+      else if (maxScore >= 40) riskCounts['Medium Risk']++;
+      else if (maxScore >= 20) riskCounts['Low Risk']++;
+      else riskCounts['Minimal Risk']++;
+    });
+
     const riskColors = {
       'Low Risk': '#10b981',
       'Medium Risk': '#f59e0b', 
@@ -46,33 +118,35 @@ export async function GET(request: NextRequest) {
       'Minimal Risk': '#10b981'
     };
 
-    const riskDistributionWithColors = securityData.riskDistribution.map((risk: any) => ({
-      level: risk.risk_level,
-      count: risk.count,
-      percentage: Math.round((risk.count / securityData.securityMetrics.totalPlayers) * 100 * 10) / 10,
-      color: riskColors[risk.risk_level as keyof typeof riskColors] || '#6b7280'
-    }));
+    const riskDistribution = riskLevels
+      .filter(level => riskCounts[level as keyof typeof riskCounts] > 0)
+      .map(level => ({
+        level: level,
+        count: riskCounts[level as keyof typeof riskCounts],
+        percentage: Math.round((riskCounts[level as keyof typeof riskCounts] / Math.max(totalPlayers, 1)) * 100 * 10) / 10,
+        color: riskColors[level as keyof typeof riskColors] || '#6b7280'
+      }));
 
     // Create volume analysis based on hands played
     const volumeAnalysis = [
-      { range: '1-50', players: Math.floor(securityData.securityMetrics.totalPlayers * 0.15), avgWinRate: 2.1, suspicious: 1 },
-      { range: '51-100', players: Math.floor(securityData.securityMetrics.totalPlayers * 0.20), avgWinRate: 3.8, suspicious: 2 },
-      { range: '101-300', players: Math.floor(securityData.securityMetrics.totalPlayers * 0.35), avgWinRate: 5.2, suspicious: 3 },
-      { range: '301-500', players: Math.floor(securityData.securityMetrics.totalPlayers * 0.20), avgWinRate: 6.1, suspicious: 1 },
-      { range: '500+', players: Math.floor(securityData.securityMetrics.totalPlayers * 0.10), avgWinRate: 7.3, suspicious: 0 }
+      { range: '1-50', players: Math.floor(totalPlayers * 0.15), avgWinRate: 2.1, suspicious: 1 },
+      { range: '51-100', players: Math.floor(totalPlayers * 0.20), avgWinRate: 3.8, suspicious: 2 },
+      { range: '101-300', players: Math.floor(totalPlayers * 0.35), avgWinRate: 5.2, suspicious: 3 },
+      { range: '301-500', players: Math.floor(totalPlayers * 0.20), avgWinRate: 6.1, suspicious: 1 },
+      { range: '500+', players: Math.floor(totalPlayers * 0.10), avgWinRate: 7.3, suspicious: 0 }
     ];
 
     const response = {
       securityMetrics: {
-        totalPlayers: securityData.securityMetrics.totalPlayers,
-        flaggedPlayers: securityData.securityMetrics.flaggedPlayers,
-        highRiskPlayers: securityData.securityMetrics.flaggedPlayers,
-        botLikelihoodRate: Math.round(securityData.securityMetrics.botLikelihood * 10) / 10,
-        avgHandsPerPlayer: Math.round(securityData.volumeAnalysis.avgHandsPerPlayer),
-        criticalThreats: securityData.securityMetrics.flaggedPlayers,
+        totalPlayers: totalPlayers,
+        flaggedPlayers: flaggedPlayers,
+        highRiskPlayers: highRiskPlayers,
+        botLikelihoodRate: Math.round(avgBadActorScore * 10) / 10,
+        avgHandsPerPlayer: Math.round(avgHandsPerPlayer),
+        criticalThreats: highRiskPlayers,
         lastUpdate: new Date().toLocaleTimeString()
       },
-      riskDistribution: riskDistributionWithColors,
+      riskDistribution: riskDistribution,
       volumeAnalysis: volumeAnalysis
     };
 
@@ -83,5 +157,9 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch security overview data' },
       { status: 500 }
     );
+  } finally {
+    if (db) {
+      await closeDb(db);
+    }
   }
 } 
