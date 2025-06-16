@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkDatabaseHealth, getCachedQuery } from '@/lib/database-unified';
+import { checkDatabaseHealth, getCachedQuery } from '../../../lib/database-unified';
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';

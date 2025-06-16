@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getHeavySecurityOverview } from '@/lib/database-heavy';
+import { getHeavySecurityOverview } from '../../../lib/database-heavy';
 
 interface BotDetectionData {
   suspicious_players: Array<{

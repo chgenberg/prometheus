@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getHeavyWinRateDistribution } from '@/lib/database-heavy';
+import { getHeavyWinRateDistribution } from '../../../lib/database-heavy';
 
 export async function GET() {
   try {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/database-unified';
+import { openDb } from '../../../lib/database-unified';
 
 // 🔥 ULTRA-AGGRESSIVE BOT HUNTER
 // Sänkta trösklar för att fånga ALLA potentiella botar

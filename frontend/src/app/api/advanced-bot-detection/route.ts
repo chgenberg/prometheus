@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/database-unified';
+import { openDb } from '../../../lib/database-unified';
 
 // Helper: Shannon entropy
 function shannonEntropy(counts: Record<string, number>): number {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { openDb, getCachedQuery, setCachedQuery, getPlayerStatsOptimized, batchPlayerLookup } from '@/lib/database-unified';
-import { getPlayerStatsQuery, getPlayerSearchQuery, getPlayerAveragesQuery, getPlayerRankQuery } from '@/lib/database-migration';
+import { openDb, getCachedQuery, setCachedQuery, getPlayerStatsOptimized, batchPlayerLookup } from '../../../lib/database-unified';
+import { getPlayerStatsQuery, getPlayerSearchQuery, getPlayerAveragesQuery, getPlayerRankQuery } from '../../../lib/database-migration';
 
 // Initialize OpenAI with environment variable or fallback
 const openai = new OpenAI({

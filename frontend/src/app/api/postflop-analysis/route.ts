@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getHeavyPostflopAnalysis } from '@/lib/database-heavy';
+import { getHeavyPostflopAnalysis } from '../../../lib/database-heavy';
 
 export async function GET() {
   try {

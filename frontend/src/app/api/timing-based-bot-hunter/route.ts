@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/database-unified';
+import { openDb } from '../../../lib/database-unified';
 
 // 🚨 TIMING-BASED BOT HUNTER - De mest avancerade timing-signatures
 // Analyserar microsecond-patterns som BARA botar kan skapa

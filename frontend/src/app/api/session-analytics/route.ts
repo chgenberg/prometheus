@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getHeavyDb } from '@/lib/database-heavy';
+import { getHeavyDb } from '../../../lib/database-heavy';
 
 export async function GET(request: NextRequest) {
   try {

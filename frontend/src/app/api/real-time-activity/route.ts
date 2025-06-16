@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/database-unified';
+import { getDb } from '../../../lib/database-unified';
 
 interface ActivityEvent {
   id: string;

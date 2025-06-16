@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/database-unified';
+import { openDb } from '../../../lib/database-unified';
 import OpenAI from 'openai';
 
 // 🧠 SYNERGISTIC BOT HUNTER - THE ULTIMATE DETECTOR

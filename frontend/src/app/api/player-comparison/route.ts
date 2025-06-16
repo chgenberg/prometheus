@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { openDb } from '@/lib/database-unified';
+import { openDb } from '../../../lib/database-unified';
 
 interface PlayerStats {
   player_name: string;

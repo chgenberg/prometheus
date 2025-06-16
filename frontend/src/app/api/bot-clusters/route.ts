@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/database-unified';
+import { openDb } from '../../../lib/database-unified';
 
 // Simple K-means clustering implementation
 function simpleKMeans(data: any[], k: number = 4) {

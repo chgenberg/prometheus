@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/database-unified';
+import { openDb } from '../../../lib/database-unified';
 
 // 🎯 ULTIMATE BOT HUNTER - Implementerar ALLA avancerade tekniker
 // Baserat på verklig bot-hacker analys och professionell säkerhetsforskning

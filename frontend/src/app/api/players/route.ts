@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, getCachedQuery, setCachedQuery } from '@/lib/database-unified';
+import { getDb, getCachedQuery, setCachedQuery } from '../../../lib/database-unified';
 
 // Rate limiting för produktion
 const requestCounts = new Map<string, { count: number; resetTime: number }>();

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { PlayerStat } from '@/lib/database-unified';
+import { PlayerStat } from '../lib/database-unified';
 
 interface UsePlayerStatsParams {
   page?: number;
