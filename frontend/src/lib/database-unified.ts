@@ -301,7 +301,7 @@ export async function getAdvancedHandAnalysisSummary() {
   };
 }
 
-export async function getHands(_tableSize?: string | null) {
+export async function getHands(_: string | null = null) {
   const database = await getDb();
   let query = `
     SELECT 
