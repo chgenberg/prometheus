@@ -134,8 +134,8 @@ export async function GET(request: NextRequest) {
           bValue = b.intention_score || 0;
           break;
         case 'collusion_score':
-          aValue = a.collution_score || 0;
-          bValue = b.collution_score || 0;
+          aValue = a.collusion_score || 0;
+          bValue = b.collusion_score || 0;
           break;
         default:
           aValue = a.total_hands || 0;
