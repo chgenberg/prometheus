@@ -51,8 +51,8 @@ export async function getApiDb(): Promise<Database> {
 export async function closeDb(db: Database): Promise<void> {
   try {
     await db.close();
-  } catch (error) {
-    console.error('Error closing database:', error);
+  } catch {
+    console.error('Error closing database');
   }
 }
 
@@ -82,7 +82,7 @@ export async function getCoinpokerPlayers(db: Database, limit: number = 200, add
     LIMIT ?
   `, [limit]);
   
-  return players;
+  return players as Record<string, unknown>[];
 }
 
 // Helper for session data (if exists)
@@ -94,9 +94,9 @@ export async function getSessionData(db: Database, playerId?: string): Promise<R
   const params = playerId ? [playerId] : [];
   
   try {
-    return await db.all(query, params);
-  } catch (error) {
-    console.warn('Session data not available:', error);
+    return await db.all(query, params) as Record<string, unknown>[];
+  } catch {
+    console.warn('Session data not available');
     return [];
   }
 }
@@ -110,9 +110,9 @@ export async function getDetailedActions(db: Database, playerId?: string, limit:
   const params = playerId ? [playerId, limit] : [limit];
   
   try {
-    return await db.all(query, params);
-  } catch (error) {
-    console.warn('Detailed actions not available:', error);
+    return await db.all(query, params) as Record<string, unknown>[];
+  } catch {
+    console.warn('Detailed actions not available');
     return [];
   }
 } 

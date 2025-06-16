@@ -13,7 +13,7 @@ const nextConfig = {
   typescript: {
     // !! WARN !!
     // Temporarily allow production builds to successfully complete even if
-    // your project has type errors while we fix the ESLint warnings.
+    // your project has type errors while we fix the remaining TypeScript issues.
     // !! WARN !!
     ignoreBuildErrors: true,
   },

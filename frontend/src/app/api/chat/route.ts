@@ -776,7 +776,7 @@ export async function POST(request: NextRequest) {
 
 **Detailed Analysis:**
 
-• **Postflop Aggression:** ${bluffingData.player.postflop_aggression.toFixed(1)} (higher = more aggressive)
+• **Postflop Aggression:** ${(bluffingData.player.postflop_aggression ?? 0).toFixed(1)} (higher = more aggressive)
 • **Showdown Win Rate:** ${bluffingData.player.showdown_win_percent}% (when they show their cards)  
 • **Playing Style:** ${bluffingData.analysis.style}
 
@@ -814,7 +814,7 @@ ${topBluffers.map((player: any, index: number) =>
   `**${index + 1}. ${player.player_name}**
 
 • **Estimated Bluff Rate:** ${Math.max(0, player.bluff_estimate).toFixed(1)}%
-• **Aggression Level:** ${player.postflop_aggression.toFixed(1)}
+• **Aggression Level:** ${(player.postflop_aggression ?? 0).toFixed(1)}
 • **Showdown Win Rate:** ${player.showdown_win_percent}%
 
 *Click on ${player.player_name} above to view detailed analysis*`
@@ -921,7 +921,7 @@ This ranking shows the ${categoryTitle.toLowerCase()} leaders in our database. $
 • **Net Win:** ${player1.net_win_bb} BB
 • **VPIP:** ${player1.preflop_vpip}%
 • **PFR:** ${player1.preflop_pfr}%
-• **Aggression:** ${player1.postflop_aggression.toFixed(1)}
+• **Aggression:** ${(player1.postflop_aggression ?? 0).toFixed(1)}
 • **Showdown Win:** ${player1.showdown_win_percent}%
 
 **${player2.player_name} Statistics:**
@@ -931,7 +931,7 @@ This ranking shows the ${categoryTitle.toLowerCase()} leaders in our database. $
 • **Net Win:** ${player2.net_win_bb} BB
 • **VPIP:** ${player2.preflop_vpip}%
 • **PFR:** ${player2.preflop_pfr}%
-• **Aggression:** ${player2.postflop_aggression.toFixed(1)}
+• **Aggression:** ${(player2.postflop_aggression ?? 0).toFixed(1)}
 • **Showdown Win:** ${player2.showdown_win_percent}%
 
 **Comparative Analysis:**
