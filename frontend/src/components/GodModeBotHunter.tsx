@@ -128,48 +128,62 @@ export default function GodModeBotHunter() {
             </p>
           </div>
 
-          {/* Player List */}
-          <div className="space-y-4">
-            {result.results.map((profile, index) => (
-              <div key={profile.player_id} className="bg-gray-900/50 backdrop-blur-lg rounded-xl border border-gray-700 p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <p className="text-xl font-bold text-white">{profile.player_id}</p>
-                    <ThreatLevel level={profile.threat_level} />
+          {/* Top 10 High-Risk Bot Suspects */}
+          <div className="bg-gray-900/60 backdrop-blur-md rounded-2xl p-6 border border-gray-700">
+            <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+              <Skull className="w-8 h-8 text-red-500" />
+              Top 10 High-Risk Bot Suspects
+            </h3>
+            <div className="space-y-4">
+              {result.results.slice(0, 10).map((profile, index) => (
+                <div key={profile.player_id} className="bg-gray-900/50 backdrop-blur-lg rounded-xl border border-gray-700 p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg font-bold text-gray-400">#{index + 1}</span>
+                        <button
+                          onClick={() => window.location.href = `/?player=${encodeURIComponent(profile.player_id)}`}
+                          className="text-xl font-bold text-white hover:text-blue-400 transition-colors duration-200 underline decoration-blue-500/50 hover:decoration-blue-400 cursor-pointer"
+                        >
+                          {profile.player_id}
+                        </button>
+                      </div>
+                      <ThreatLevel level={profile.threat_level} />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-gray-400 text-sm">Final Score</p>
+                      <p className="text-3xl font-bold text-red-500">{profile.final_score.toFixed(0)}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-gray-400 text-sm">Final Score</p>
-                    <p className="text-3xl font-bold text-red-500">{profile.final_score.toFixed(0)}</p>
-                  </div>
-                </div>
 
-                {/* Factors */}
-                <div className="grid grid-cols-4 gap-3 text-center mb-4 text-sm">
-                    {Object.entries(profile.factors).map(([key, value]) => (
-                        <div key={key} className="bg-gray-800 p-2 rounded-md">
-                            <p className="text-gray-400 capitalize text-xs">{key}</p>
-                            <p className="font-bold text-white">{value.toFixed(0)}</p>
+                  {/* Factors */}
+                  <div className="grid grid-cols-4 gap-3 text-center mb-4 text-sm">
+                      {Object.entries(profile.factors).map(([key, value]) => (
+                          <div key={key} className="bg-gray-800 p-2 rounded-md">
+                              <p className="text-gray-400 capitalize text-xs">{key}</p>
+                              <p className="font-bold text-white">{value.toFixed(0)}</p>
+                          </div>
+                      ))}
+                  </div>
+
+                  {/* GPT-4o Verdict */}
+                  {profile.gpt4o_verdict && (
+                    <div className="border-t-2 border-dashed border-red-800/50 pt-3 mt-3">
+                        <div className="flex items-center gap-3 mb-2">
+                           <img src="/openai-logo.svg" alt="OpenAI" className="w-5 h-5" />
+                           <h4 className="text-md font-bold text-white">GPT-4o Expert Verdict</h4>
                         </div>
-                    ))}
+                        <div className="bg-black/40 p-3 rounded-lg border border-gray-700 text-sm">
+                           <p className="text-red-300">
+                              <span className="font-bold">Judgment:</span> {profile.gpt4o_verdict.judgement} ({profile.gpt4o_verdict.confidence}%)
+                           </p>
+                           <p className="text-gray-300 mt-1 italic">"{profile.gpt4o_verdict.reasoning}"</p>
+                        </div>
+                    </div>
+                  )}
                 </div>
-
-                {/* GPT-4o Verdict */}
-                {profile.gpt4o_verdict && (
-                  <div className="border-t-2 border-dashed border-red-800/50 pt-3 mt-3">
-                      <div className="flex items-center gap-3 mb-2">
-                         <img src="/openai-logo.svg" alt="OpenAI" className="w-5 h-5" />
-                         <h4 className="text-md font-bold text-white">GPT-4o Expert Verdict</h4>
-                      </div>
-                      <div className="bg-black/40 p-3 rounded-lg border border-gray-700 text-sm">
-                         <p className="text-red-300">
-                            <span className="font-bold">Judgment:</span> {profile.gpt4o_verdict.judgement} ({profile.gpt4o_verdict.confidence}%)
-                         </p>
-                         <p className="text-gray-300 mt-1 italic">"{profile.gpt4o_verdict.reasoning}"</p>
-                      </div>
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </>
       )}
