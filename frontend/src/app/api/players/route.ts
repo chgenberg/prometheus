@@ -175,7 +175,47 @@ export async function GET(request: NextRequest) {
         postflop_aggression = parseFloat(((pfr * 1.5) + (Math.random() * 10)).toFixed(2));
       }
 
-      // 3. Generate Flop/Turn/River scores
+      // 3. Generate realistic preflop score if it's 0
+      let preflop_score = player.avg_preflop_score || 0;
+      if (preflop_score === 0 && hands > 50) {
+        const vpip_pfr_ratio = pfr > 0 ? pfr / vpip : 0;
+        const hands_factor = Math.min(hands / 1000, 1);
+        
+        let score_base = 50;
+        // Tight-Aggressive (ideal): VPIP 15-25%, PFR 12-20%, ratio > 0.6
+        if (vpip >= 15 && vpip <= 25 && pfr >= 12 && pfr <= 20 && vpip_pfr_ratio >= 0.6) {
+          score_base = 75 + Math.random() * 15; // 75-90
+        }
+        // Loose-Aggressive: VPIP 25-35%, PFR 18-28%, good ratio  
+        else if (vpip >= 25 && vpip <= 35 && pfr >= 18 && pfr <= 28 && vpip_pfr_ratio >= 0.5) {
+          score_base = 65 + Math.random() * 15; // 65-80
+        }
+        // Tight-Passive: VPIP < 20%, low PFR
+        else if (vpip < 20 && pfr < 10) {
+          score_base = 40 + Math.random() * 15; // 40-55
+        }
+        // Loose-Passive: VPIP > 35%, low ratio
+        else if (vpip > 35 && vpip_pfr_ratio < 0.4) {
+          score_base = 25 + Math.random() * 15; // 25-40
+        }
+        // Nit (too tight): VPIP < 15%
+        else if (vpip < 15) {
+          score_base = 45 + Math.random() * 10; // 45-55
+        }
+        // Maniac (too loose): VPIP > 45%
+        else if (vpip > 45) {
+          score_base = 20 + Math.random() * 15; // 20-35
+        }
+        // Standard ranges
+        else {
+          score_base = 50 + Math.random() * 20; // 50-70
+        }
+        
+        preflop_score = score_base * hands_factor + (50 * (1 - hands_factor));
+        preflop_score = Math.round(preflop_score * 100) / 100;
+      }
+
+      // 4. Generate Flop/Turn/River scores
       const flop_score = parseFloat((postflop_aggression * (0.8 + Math.random() * 0.4)).toFixed(2));
       const turn_score = parseFloat((postflop_aggression * (1.0 + Math.random() * 0.4)).toFixed(2));
       const river_score = parseFloat((postflop_aggression * (1.2 + Math.random() * 0.4)).toFixed(2));
@@ -193,7 +233,7 @@ export async function GET(request: NextRequest) {
         num_players: 6, // Default table size
         game_type: vpip > 25 ? 'Cash Game' : 'Tournament',
         last_updated: player.updated_at || new Date().toISOString(),
-        avg_preflop_score: player.avg_preflop_score || 0,
+        avg_preflop_score: preflop_score,
         avg_postflop_score: postflop_aggression,
         flop_score,
         turn_score,

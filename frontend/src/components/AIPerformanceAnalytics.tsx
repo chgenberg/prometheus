@@ -75,10 +75,11 @@ export default function AIPerformanceAnalytics() {
 
   const getPerformanceLevel = (score: number, type: 'preflop' | 'postflop') => {
     if (type === 'preflop') {
-      if (score >= 0.9) return { level: 'Expert', color: 'text-green-500 bg-green-500/20' };
-      if (score >= 0.8) return { level: 'Advanced', color: 'text-blue-500 bg-blue-500/20' };
-      if (score >= 0.7) return { level: 'Intermediate', color: 'text-yellow-500 bg-yellow-500/20' };
-      if (score >= 0.5) return { level: 'Beginner', color: 'text-orange-500 bg-orange-500/20' };
+      // Updated to handle 0-100 scale instead of 0-1
+      if (score >= 80) return { level: 'Expert', color: 'text-green-500 bg-green-500/20' };
+      if (score >= 70) return { level: 'Advanced', color: 'text-blue-500 bg-blue-500/20' };
+      if (score >= 60) return { level: 'Intermediate', color: 'text-yellow-500 bg-yellow-500/20' };
+      if (score >= 40) return { level: 'Beginner', color: 'text-orange-500 bg-orange-500/20' };
       return { level: 'Learning', color: 'text-red-500 bg-red-500/20' };
     } else {
       // Postflop scores are typically 0 in this dataset, so we'll use a different scale
@@ -94,12 +95,13 @@ export default function AIPerformanceAnalytics() {
     const scores = players.map(p => type === 'preflop' ? p.avg_preflop_score : p.avg_postflop_score);
     
     if (type === 'preflop') {
+      // Updated to handle 0-100 scale
       return [
-        { range: '0.9-1.0', count: scores.filter(s => s >= 0.9).length, color: '#10b981' },
-        { range: '0.8-0.9', count: scores.filter(s => s >= 0.8 && s < 0.9).length, color: '#3b82f6' },
-        { range: '0.7-0.8', count: scores.filter(s => s >= 0.7 && s < 0.8).length, color: '#f59e0b' },
-        { range: '0.5-0.7', count: scores.filter(s => s >= 0.5 && s < 0.7).length, color: '#ef4444' },
-        { range: '0.0-0.5', count: scores.filter(s => s < 0.5).length, color: '#6b7280' }
+        { range: '80-100', count: scores.filter(s => s >= 80).length, color: '#10b981' },
+        { range: '70-80', count: scores.filter(s => s >= 70 && s < 80).length, color: '#3b82f6' },
+        { range: '60-70', count: scores.filter(s => s >= 60 && s < 70).length, color: '#f59e0b' },
+        { range: '40-60', count: scores.filter(s => s >= 40 && s < 60).length, color: '#ef4444' },
+        { range: '0-40', count: scores.filter(s => s < 40).length, color: '#6b7280' }
       ];
     } else {
       return [
@@ -181,10 +183,10 @@ export default function AIPerformanceAnalytics() {
                   <TrendingUp className="h-4 w-4 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
                 <p className="text-sm text-gray-400 font-medium">Avg Preflop Score</p>
-                <p className="text-3xl font-bold text-white mt-1">{metrics.avgPreflopScore.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-white mt-1">{metrics.avgPreflopScore.toFixed(1)}</p>
                 <p className="text-xs text-gray-500 mt-1">{metrics.playersWithPreflopData} players with data</p>
                 <div className="mt-2 h-1 bg-gray-700/50 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full animate-pulse" style={{ width: `${(metrics.avgPreflopScore * 100)}%` }} />
+                  <div className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full animate-pulse" style={{ width: `${Math.min(metrics.avgPreflopScore, 100)}%` }} />
                 </div>
               </div>
             </div>
@@ -218,11 +220,11 @@ export default function AIPerformanceAnalytics() {
                 </div>
                 <p className="text-sm text-gray-400 font-medium">Expert Players</p>
                 <p className="text-3xl font-bold text-white mt-1">
-                  {players.filter(p => p.avg_preflop_score >= 0.9).length}
+                  {players.filter(p => p.avg_preflop_score >= 80).length}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Preflop score ≥ 0.9</p>
+                <p className="text-xs text-gray-500 mt-1">Preflop score ≥ 80</p>
                 <div className="mt-2 h-1 bg-gray-700/50 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full" style={{ width: `${(players.filter(p => p.avg_preflop_score >= 0.9).length / players.length) * 100}%` }} />
+                  <div className="h-full bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full" style={{ width: `${(players.filter(p => p.avg_preflop_score >= 80).length / players.length) * 100}%` }} />
                 </div>
               </div>
             </div>
@@ -318,7 +320,7 @@ export default function AIPerformanceAnalytics() {
                   </div>
                   <div className="text-right">
                     <div className="text-white font-bold">
-                      {selectedMetric === 'preflop' ? score.toFixed(2) : score.toFixed(1)}
+                      {score.toFixed(1)}
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${performance.color}`}>
                       {performance.level}
