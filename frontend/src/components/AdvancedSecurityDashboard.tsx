@@ -66,7 +66,7 @@ export default function AdvancedSecurityDashboard() {
       setLoading(true);
       
       // Fetch players with security scores
-      const playersResponse = await fetch('/api/players?limit=100&sortBy=bad_actor_score&sortOrder=desc');
+      const playersResponse = await fetch('/api/players?limit=500&sortBy=bad_actor_score&sortOrder=desc');
       const playersData = await playersResponse.json();
       
       if (playersData.players) {

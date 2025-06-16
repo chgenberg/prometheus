@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
   
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '100');
+    const limit = parseInt(searchParams.get('limit') || '200');
     const offset = parseInt(searchParams.get('offset') || '0');
     const player = searchParams.get('player');
 
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
         return hands.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       };
 
-      const handHistory = generatePlayerHands(targetPlayer, Math.min(limit, 100));
+      const handHistory = generatePlayerHands(targetPlayer, limit);
 
       return NextResponse.json({
         hands: handHistory,

@@ -42,7 +42,7 @@ export default function AIPerformanceAnalytics() {
     try {
       setLoading(true);
       
-      const response = await fetch('/api/players?limit=100&sortBy=avg_preflop_score&sortOrder=desc');
+      const response = await fetch('/api/players?limit=500&sortBy=avg_preflop_score&sortOrder=desc');
       const data = await response.json();
       
       if (data.players) {
