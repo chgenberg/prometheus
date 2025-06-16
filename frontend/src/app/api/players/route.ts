@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
+import { queryTurso } from '../../../lib/database-turso';
 
 // Rate limiting för produktion
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
@@ -40,8 +40,54 @@ interface PlayersResponse {
   limit: number;
 }
 
+async function getCoinpokerPlayersFromTurso() {
+  console.log('Fetching players from Turso database...');
+  
+  const query = `
+    SELECT 
+      m.player_id,
+      m.total_hands,
+      m.net_win_bb,
+      v.vpip,
+      v.pfr,
+      ps.avg_score as avg_postflop_score,
+      pr.avg_score as avg_preflop_score,
+      ai.intention_score,
+      ai.collution_score,
+      ai.bad_actor_score
+    FROM main m
+    LEFT JOIN vpip_pfr v ON m.player_id = v.player_id
+    LEFT JOIN postflop_scores ps ON m.player_id = ps.player_id
+    LEFT JOIN preflop_scores pr ON m.player_id = pr.player_id
+    LEFT JOIN ai_scores ai ON m.player_id = ai.player_id
+    WHERE m.player_id LIKE 'CoinPoker%'
+    ORDER BY m.total_hands DESC
+  `;
+  
+  try {
+    const result = await queryTurso(query);
+    console.log(`Found ${result.rows.length} CoinPoker players`);
+    
+    // Convert Turso result format to match expected format
+    return result.rows.map((row: any) => ({
+      player_id: row[0] || row.player_id,
+      total_hands: row[1] || row.total_hands || 0,
+      net_win_bb: row[2] || row.net_win_bb || 0,
+      vpip: row[3] || row.vpip || 0,
+      pfr: row[4] || row.pfr || 0,
+      avg_postflop_score: row[5] || row.avg_postflop_score || 0,
+      avg_preflop_score: row[6] || row.avg_preflop_score || 0,
+      intention_score: row[7] || row.intention_score || 0,
+      collution_score: row[8] || row.collution_score || 0,
+      bad_actor_score: row[9] || row.bad_actor_score || 0,
+    }));
+  } catch (error) {
+    console.error('Error fetching players from Turso:', error);
+    throw error;
+  }
+}
+
 export async function GET(request: NextRequest) {
-  let db;
   try {
     // Rate limiting för produktion
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
@@ -64,11 +110,9 @@ export async function GET(request: NextRequest) {
     };
 
     const offset = query.page * query.limit;
-
-    db = await getApiDb();
     
-    // Get Coinpoker players using the helper function
-    const allPlayers = await getCoinpokerPlayers(db);
+    // Get Coinpoker players using Turso
+    const allPlayers = await getCoinpokerPlayersFromTurso();
     
     if (!allPlayers || allPlayers.length === 0) {
       return NextResponse.json({
@@ -232,7 +276,7 @@ export async function GET(request: NextRequest) {
         showdown_win_percent: player.total_hands > 0 ? 50 + Math.random() * 20 - 10 : 0, // Simulated
         num_players: 6, // Default table size
         game_type: vpip > 25 ? 'Cash Game' : 'Tournament',
-        last_updated: player.updated_at || new Date().toISOString(),
+        last_updated: new Date().toISOString(),
         avg_preflop_score: preflop_score,
         avg_postflop_score: postflop_aggression,
         flop_score,
@@ -263,28 +307,21 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch players' },
       { status: 500 }
     );
-  } finally {
-    if (db) {
-      await closeDb(db);
-    }
   }
 }
 
 // Optional: POST endpoint for bulk operations
 export async function POST(request: NextRequest) {
-  let db;
   try {
     const { action, playerIds } = await request.json();
 
     if (action === 'bulk_stats' && Array.isArray(playerIds)) {
-      db = await getApiDb();
-      
-      const allPlayers = await getCoinpokerPlayers(db);
+      const allPlayers = await getCoinpokerPlayersFromTurso();
       const requestedPlayers = allPlayers.filter(player => 
         playerIds.includes(player.player_id)
       );
 
-      const transformedPlayers = requestedPlayers.map(player => ({
+      const transformedPlayers = requestedPlayers.map((player: any) => ({
         player_name: player.player_id,
         hands_played: player.total_hands || 0,
         win_rate_percent: player.total_hands > 0 
@@ -308,9 +345,5 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to process request' },
       { status: 500 }
     );
-  } finally {
-    if (db) {
-      await closeDb(db);
-    }
   }
 } 
