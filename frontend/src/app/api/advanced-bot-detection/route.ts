@@ -1,74 +1,39 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '../../../lib/database-unified';
-
-// Helper: Shannon entropy
-function shannonEntropy(counts: Record<string, number>): number {
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  if (total === 0) return 0;
-  let entropy = 0;
-  for (const c of Object.values(counts)) {
-    const p = c / total;
-    entropy -= p * Math.log2(p);
-  }
-  return entropy;
-}
+import { queryTurso } from '../../../lib/database-turso';
 
 export async function GET() {
   try {
-    const db = await openDb();
+    // Simple detection based on Turso data
+    const query = `
+      SELECT 
+        player_id,
+        COUNT(*) as total_actions,
+        COUNT(DISTINCT street) as streets_played,
+        AVG(CASE WHEN action_type = 'fold' THEN 1 ELSE 0 END) as fold_rate
+      FROM detailed_actions 
+      WHERE player_id LIKE 'coinpoker%'
+      GROUP BY player_id
+      HAVING COUNT(*) > 100
+      ORDER BY fold_rate DESC
+      LIMIT 50
+    `;
+    
+    const result = await queryTurso(query);
+    
+    const detections = result.rows.map((row: any) => ({
+      player_id: row.player_id,
+      total_actions: row.total_actions,
+      streets_played: row.streets_played,
+      fold_rate: parseFloat((row.fold_rate * 100).toFixed(2)),
+      riskScore: Math.min(100, Math.floor(row.fold_rate * 120)), // Simple risk calculation
+      detection_type: 'high_fold_rate'
+    }));
 
-    // 1) Bet-size distribution per player
-    const betRows: any[] = await db.all(
-      `SELECT player_id, COALESCE(bet_size_category,'unknown') AS bet_size_category, COUNT(*) as cnt
-       FROM detailed_actions
-       WHERE bet_size_category IS NOT NULL
-       GROUP BY player_id, bet_size_category`
-    );
-
-    // Organise counts per player
-    const betMap: Record<string, Record<string, number>> = {};
-    for (const row of betRows) {
-      if (!betMap[row.player_id]) betMap[row.player_id] = {};
-      betMap[row.player_id][row.bet_size_category!] = row.cnt;
-    }
-
-    // 2) Session statistics per player
-    const sessionRows: any[] = await db.all(
-      `SELECT player_id,
-              COUNT(*)                       AS sessions,
-              SUM(duration_minutes)          AS total_minutes,
-              MAX(duration_minutes)          AS longest_session
-         FROM session_analysis
-        GROUP BY player_id`
-    );
-
-    // Build player detections
-    const detections = sessionRows.map((row: any) => {
-      const entropy = shannonEntropy(betMap[row.player_id] || {});
-      const lowEntropy = entropy < 1.5; // threshold
-      const marathonSessions = row.longest_session > 960; // >16h
-
-      // Composite risk score [0-100]
-      let risk = 0;
-      if (lowEntropy) risk += 40;
-      if (marathonSessions) risk += 40;
-      if (row.sessions > 100) risk += 20; // very high volume
-      risk = Math.min(100, risk);
-
-      return {
-        player_id: row.player_id,
-        entropy: Number(entropy.toFixed(2)),
-        marathonSessions,
-        totalSessions: row.sessions,
-        longestSessionMin: row.longest_session,
-        riskScore: risk,
-      };
+    return NextResponse.json({ 
+      success: true, 
+      detections,
+      total_detected: detections.length 
     });
-
-    // Sort highest risk first
-    detections.sort((a: any, b: any) => b.riskScore - a.riskScore);
-
-    return NextResponse.json({ success: true, detections });
   } catch (err) {
     console.error('Advanced bot detection error', err);
     return NextResponse.json(
