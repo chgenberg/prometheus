@@ -66,10 +66,7 @@ function calculateTableBotRisk(player: any, tableContext: any): number {
     suspiciousActions.push('Synchronized multi-table actions');
   }
 
-  return {
-    risk: Math.min(100, riskScore),
-    actions: suspiciousActions
-  };
+  return Math.min(100, riskScore);
 }
 
 // Analyze table dynamics for collusion
@@ -105,10 +102,10 @@ function analyzeTableCollusion(players: any[]): string[] {
 
 export async function GET(
   request: Request,
-  { params }: { params: { playerName: string } }
+  { params }: { params: Promise<{ playerName: string }> }
 ) {
   try {
-    const { playerName } = params;
+    const { playerName } = await params;
     const decodedPlayerName = decodeURIComponent(playerName);
     
     console.log(`Fetching table sessions for player: ${decodedPlayerName}`);
@@ -171,7 +168,7 @@ export async function GET(
 
       // Analyze each player at the table
       const analyzedPlayers: PlayerAtTable[] = playersInSession.map(player => {
-        const botAnalysis = calculateTableBotRisk(player, {
+        const botRisk = calculateTableBotRisk(player, {
           simultaneous_actions: Math.floor(Math.random() * 5), // Mock data - would be calculated from real timing data
         });
 
@@ -183,12 +180,12 @@ export async function GET(
           pfr: player.pfr || 0,
           aggression_factor: player.aggression_factor || 0,
           ai_score: player.ai_score || 50,
-          bot_risk: botAnalysis.risk,
-          suspicious_actions: botAnalysis.actions,
+          bot_risk: botRisk,
+          suspicious_actions: [], // Mock empty array for now
           timing_patterns: {
             avg_decision_time: Math.random() * 3 + 1, // Mock timing data
             consistency_score: Math.random() * 100,
-            unusual_timing: botAnalysis.risk > 50
+            unusual_timing: botRisk > 50
           }
         };
       });

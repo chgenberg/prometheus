@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "PROMETHEUS - Advanced Poker Analytics Dashboard with Bot Detection",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
+    "build": "cd frontend && npm install && rm -rf .next && npm run build",
     "start": "cd frontend && npm start",
     "dev": "cd frontend && npm run dev",
     "install": "cd frontend && npm install"

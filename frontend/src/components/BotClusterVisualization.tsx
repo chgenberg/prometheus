@@ -108,7 +108,7 @@ export default function BotClusterVisualization() {
     const filteredData = getFilteredData();
     
     // Group data by player type for legend
-    const datasets = [];
+    const datasets: any[] = [];
     const playerTypes = [...new Set(filteredData.map(p => p.player_type))];
     
     playerTypes.forEach(type => {

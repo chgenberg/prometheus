@@ -37,7 +37,21 @@ export default function PlayerDashboard() {
     maxAggression: '',
   });
 
-  const { data, isLoading, error } = usePlayerStats(filters);
+  const { data, isLoading, error } = usePlayerStats({
+    ...filters,
+    minHands: filters.minHands ? Number(filters.minHands) : undefined,
+    maxHands: filters.maxHands ? Number(filters.maxHands) : undefined,
+    minWinRate: filters.minWinRate ? Number(filters.minWinRate) : undefined,
+    maxWinRate: filters.maxWinRate ? Number(filters.maxWinRate) : undefined,
+    minNetWinBB: filters.minNetWinBB ? Number(filters.minNetWinBB) : undefined,
+    maxNetWinBB: filters.maxNetWinBB ? Number(filters.maxNetWinBB) : undefined,
+    minVPIP: filters.minVPIP ? Number(filters.minVPIP) : undefined,
+    maxVPIP: filters.maxVPIP ? Number(filters.maxVPIP) : undefined,
+    minPFR: filters.minPFR ? Number(filters.minPFR) : undefined,
+    maxPFR: filters.maxPFR ? Number(filters.maxPFR) : undefined,
+    minAggression: filters.minAggression ? Number(filters.minAggression) : undefined,
+    maxAggression: filters.maxAggression ? Number(filters.maxAggression) : undefined,
+  });
 
   // Debug logging to see if bot scores are included
   useEffect(() => {

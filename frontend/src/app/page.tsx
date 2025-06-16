@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PlayerDashboard from '@/components/PlayerDashboard';
 import GlobalSecurityOverview from '@/components/GlobalSecurityOverview';
@@ -30,7 +30,7 @@ interface SummaryData {
   active_players: number;
 }
 
-export default function Home() {
+function HomeContent() {
   const [activeTab, setActiveTab] = useState('overview');
   const [summary, setSummary] = useState<SummaryData>({ hand_count: 0, active_players: 0 });
   const [loading, setLoading] = useState(true);
@@ -273,5 +273,15 @@ export default function Home() {
 
 
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+      <div className="text-white text-lg">Loading PROMETHEUS...</div>
+    </div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
