@@ -61,7 +61,7 @@ function HomeContent() {
       const playersData = await playersResponse.json();
       
       setSummary({
-        hand_count: handHistoryData.total_hands || 0,
+        hand_count: handHistoryData.stats?.total_hands || 0,
         active_players: playersData.totalCount || 0
       });
     } catch (error) {

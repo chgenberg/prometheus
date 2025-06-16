@@ -81,7 +81,7 @@ export default function SystemStatusDashboard() {
           status: playersResponse.ok ? 'healthy' : 'error',
           responseTime: dbResponseTime,
           totalPlayers: playersData.totalCount || 0,
-          totalHands: handHistoryData.total_hands || 0,
+          totalHands: handHistoryData.stats?.total_hands || 0,
           lastUpdate: new Date().toISOString()
         },
         apis: apiResults.map(result => 

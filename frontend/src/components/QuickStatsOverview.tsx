@@ -39,8 +39,8 @@ export default function QuickStatsOverview() {
 
       setStats({
         totalPlayers: playersData.totalCount || 0,
-        totalHands: handHistoryData.total_hands || 0,
-        avgSecurityScore: securityData.securityMetrics?.botLikelihood || 0,
+        totalHands: handHistoryData.stats?.total_hands || 0,
+        avgSecurityScore: securityData.securityMetrics?.botLikelihoodRate || 0,
         avgAIScore: 85.5, // This would come from AI analytics
         activeToday: Math.floor((playersData.totalCount || 0) * 0.3), // Simulated
         systemHealth: 'excellent'
