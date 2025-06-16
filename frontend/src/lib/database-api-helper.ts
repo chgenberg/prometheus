@@ -17,21 +17,21 @@ export async function getApiDb(): Promise<Database> {
 
   console.log('Trying database paths:', possiblePaths);
 
-  let dbPath: string | null = null;
-  
-  // Check which path exists
-  for (const testPath of possiblePaths) {
-    try {
-      const fs = await import('fs');
-      if (fs.existsSync(testPath)) {
-        dbPath = testPath;
-        console.log(`Database found at: ${dbPath}`);
-        break;
+  // Check which path exists and get the first valid one
+  const dbPath = await (async () => {
+    for (const testPath of possiblePaths) {
+      try {
+        const fs = await import('fs');
+        if (fs.existsSync(testPath)) {
+          console.log(`Database found at: ${testPath}`);
+          return testPath;
+        }
+      } catch {
+        // Continue to next path
       }
-    } catch {
-      // Continue to next path
     }
-  }
+    return null;
+  })();
 
   if (!dbPath) {
     console.error('Database not found in any of the expected locations');

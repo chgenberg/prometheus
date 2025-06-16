@@ -12,14 +12,14 @@ const nextConfig = {
   },
   typescript: {
     // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
+    // Temporarily allow production builds to successfully complete even if
+    // your project has type errors while we fix the ESLint warnings.
     // !! WARN !!
     ignoreBuildErrors: true,
   },
   eslint: {
     // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
+    // your project has ESLint errors while we fix them systematically.
     ignoreDuringBuilds: true,
   },
 }
