@@ -50,7 +50,7 @@ export default function HandHistorySection({ playerName, hands = [], totalHands 
       if (!response.ok) throw new Error('Failed to fetch hand history');
       
       const data = await response.json();
-      setHandHistory(data.hands || []);
+      setHandHistory(data.hand_history || []);
       setStats(data.stats || null);
       setError(null);
     } catch (err) {

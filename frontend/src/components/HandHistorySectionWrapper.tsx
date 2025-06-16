@@ -22,7 +22,7 @@ export default function HandHistorySectionWrapper() {
       fetch('/api/hand-history?limit=50')
         .then(res => res.json())
         .then(data => {
-          setHands(data.hands || []);
+          setHands(data.hand_history || []);
           setHandCount(data.stats?.total_hands || 0);
         });
     }
