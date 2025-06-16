@@ -4,14 +4,46 @@ import path from 'path';
 
 // Standardized database connection for all API endpoints
 export async function getApiDb(): Promise<Database> {
-  // Database path relative to the project root (one level up from frontend)
-  const dbPath = path.join(process.cwd(), '..', 'heavy_analysis3.db');
+  console.log('Initializing database connection...');
+  
+  // Try multiple possible paths for the database
+  const possiblePaths = [
+    path.join(process.cwd(), 'heavy_analysis3.db'), // Root of frontend
+    path.join(process.cwd(), '..', 'heavy_analysis3.db'), // Project root
+    path.join(process.cwd(), 'frontend', 'heavy_analysis3.db'), // If running from project root
+    './heavy_analysis3.db',
+    './frontend/heavy_analysis3.db'
+  ];
+
+  console.log('Trying database paths:', possiblePaths);
+
+  let dbPath: string | null = null;
+  
+  // Check which path exists
+  for (const testPath of possiblePaths) {
+    try {
+      const fs = require('fs');
+      if (fs.existsSync(testPath)) {
+        dbPath = testPath;
+        console.log(`Database found at: ${dbPath}`);
+        break;
+      }
+    } catch (error) {
+      // Continue to next path
+    }
+  }
+
+  if (!dbPath) {
+    console.error('Database not found in any of the expected locations');
+    throw new Error('Database file not found');
+  }
   
   const db = await open({
     filename: dbPath,
     driver: sqlite3.Database
   });
-  
+
+  console.log('Database connection initialized successfully');
   return db;
 }
 
