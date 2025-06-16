@@ -38,7 +38,7 @@ export async function getCoinpokerPlayers(db: Database, limit: number = 200, add
       pfr,
       bad_actor_score,
       intention_score,
-      collution_score,
+      collusion_score,
       avg_preflop_score,
       avg_postflop_score,
       net_win,
