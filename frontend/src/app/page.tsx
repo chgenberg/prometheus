@@ -2,27 +2,27 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import PlayerDashboard from '@/components/PlayerDashboard';
-import GlobalSecurityOverview from '@/components/GlobalSecurityOverview';
-import AdvancedSecurityDashboard from '@/components/AdvancedSecurityDashboard';
-import AIPerformanceAnalytics from '@/components/AIPerformanceAnalytics';
-import SystemStatusDashboard from '@/components/SystemStatusDashboard';
-import DashboardNavigation from '@/components/DashboardNavigation';
-import QuickStatsOverview from '@/components/QuickStatsOverview';
-import PlayerComparison from '@/components/PlayerComparison';
-import RealTimeDashboard from '@/components/RealTimeDashboard';
-import VirtualizedPlayerList from '@/components/VirtualizedPlayerList';
-import HandHistorySection from '@/components/HandHistorySectionWrapper';
-import WinRateAnalysis from '@/components/WinRateAnalysis';
-import PostflopAnalysis from '@/components/PostflopAnalysis';
-import GodModeBotHunter from '@/components/GodModeBotHunter';
+import PlayerDashboard from '../components/PlayerDashboard';
+import GlobalSecurityOverview from '../components/GlobalSecurityOverview';
+import AdvancedSecurityDashboard from '../components/AdvancedSecurityDashboard';
+import AIPerformanceAnalytics from '../components/AIPerformanceAnalytics';
+import SystemStatusDashboard from '../components/SystemStatusDashboard';
+import DashboardNavigation from '../components/DashboardNavigation';
+import QuickStatsOverview from '../components/QuickStatsOverview';
+import PlayerComparison from '../components/PlayerComparison';
+import RealTimeDashboard from '../components/RealTimeDashboard';
+import VirtualizedPlayerList from '../components/VirtualizedPlayerList';
+import HandHistorySection from '../components/HandHistorySectionWrapper';
+import WinRateAnalysis from '../components/WinRateAnalysis';
+import PostflopAnalysis from '../components/PostflopAnalysis';
+import GodModeBotHunter from '../components/GodModeBotHunter';
 import { FaDatabase, FaInfoCircle, FaSearch } from 'react-icons/fa';
 import { GiPokerHand } from 'react-icons/gi';
 import { Users, Activity, Database, ChevronRight, TrendingUp, Shield } from 'lucide-react';
-import PlayerDetails from '@/components/PlayerDetails';
-import QuickPlayerSearch from '@/components/QuickPlayerSearch';
-import RefreshButton from '@/components/RefreshButton';
-import UnifiedPrometheusAnalytics from '@/components/UnifiedPrometheusAnalytics';
+import PlayerDetails from '../components/PlayerDetails';
+import QuickPlayerSearch from '../components/QuickPlayerSearch';
+import RefreshButton from '../components/RefreshButton';
+import UnifiedPrometheusAnalytics from '../components/UnifiedPrometheusAnalytics';
 
 
 interface SummaryData {

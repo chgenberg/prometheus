@@ -1,4 +1,4 @@
-import { PlayerStat } from '@/lib/database-unified';
+import { PlayerStat } from '../../lib/database-unified';
 import TableHeader from './TableHeader';
 import { FaTrophy, FaChartLine, FaSearch, FaArrowDown, FaArrowUp } from 'react-icons/fa';
 import { useState } from 'react';

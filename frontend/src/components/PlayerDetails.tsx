@@ -5,8 +5,8 @@ import { TrendingUp, Activity, Target, Shield, BarChart3, Users, Zap, AlertTrian
 import { Line, Scatter } from 'react-chartjs-2';
 import PlayerTrendsChart from './PlayerTrendsChart';
 import AIAnalysisLoader from './AIAnalysisLoader';
-import { analyzePlayerStyle, getCachedPlayerStyle } from '@/lib/openaiStyle';
-import { PlayerStyle } from '@/lib/aiPlayer';
+import { analyzePlayerStyle, getCachedPlayerStyle } from '../lib/openaiStyle';
+import { PlayerStyle } from '../lib/aiPlayer';
 import {
   Chart as ChartJS,
   CategoryScale,

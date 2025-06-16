@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { usePlayerStats } from '@/hooks/usePlayerStats';
-import FilterControls from '@/components/FilterControls';
-import PlayerStatsTable from '@/app/ui/PlayerStatsTable';
-import PaginationControls from '@/app/ui/PaginationControls';
+import { usePlayerStats } from '../hooks/usePlayerStats';
+import FilterControls from './FilterControls';
+import PlayerStatsTable from '../app/ui/PlayerStatsTable';
+import PaginationControls from '../app/ui/PaginationControls';
 import { FaExclamationTriangle } from 'react-icons/fa';
-import AdvancedPlayerFilter from '@/components/AdvancedPlayerFilter';
+import AdvancedPlayerFilter from './AdvancedPlayerFilter';
 import QuickPlayerSearch from './QuickPlayerSearch';
 
 interface BotScoreResult {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import PlayerDashboard from '@/components/PlayerDashboard';
-import GodModeBotHunter from '@/components/GodModeBotHunter';
+import PlayerDashboard from './PlayerDashboard';
+import GodModeBotHunter from './GodModeBotHunter';
 import { Shield, ChevronDown, ChevronUp, Database, Search, Filter, Target, Users, CheckSquare, Square } from 'lucide-react';
 import GodModeModal from './GodModeModal';
 
