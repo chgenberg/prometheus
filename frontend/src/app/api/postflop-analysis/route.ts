@@ -103,7 +103,9 @@ export async function GET(request: NextRequest) {
       avg_river_score: streetComparison[2].avg_score,
       avg_difficulty: Math.round(avgDifficulty * 10) / 10,
       street_comparison: streetComparison,
-      top_performers: topPerformers
+      top_performers: topPerformers,
+      // For QuickStatsOverview compatibility
+      averageScore: Math.round(avgPostflopScore * 10) / 10
     });
     
   } catch (error) {

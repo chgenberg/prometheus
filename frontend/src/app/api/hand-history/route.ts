@@ -1,22 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiDb, getCoinpokerPlayers, closeDb } from '../../../lib/database-api-helper';
+import { getApiDb, closeDb } from '../../../lib/database-api-helper';
 
 interface HandHistoryData {
   hand_id: string;
   timestamp: string;
+  player_id: string;
   position: string;
+  street: string;
+  action_type: string;
+  amount: number;
   hole_cards: string;
-  final_action: string;
-  pot_size: number;
-  win_amount: number;
-  community_cards?: string;
-  pot_type?: string;
+  community_cards: string;
+  pot_before: number;
+  stack_before: number;
+  stack_after: number;
+  money_won: number;
+  net_win: number;
+  pot_type: string;
+  action_label: string;
+  stakes: string;
+  bet_size_category: string;
+  player_intention: string;
 }
 
 interface HandHistoryStats {
   total_hands: number;
-  pot_type_distribution: Array<{
-    pot_type: string;
+  total_actions: number;
+  players_analyzed: number;
+  street_distribution: Array<{
+    street: string;
+    count: number;
+    percentage: number;
+  }>;
+  action_distribution: Array<{
+    action_type: string;
     count: number;
     percentage: number;
   }>;
@@ -25,23 +42,26 @@ interface HandHistoryStats {
     count: number;
     percentage: number;
   }>;
-  player_count_distribution: Array<{
-    players: number;
+  pot_type_distribution: Array<{
+    pot_type: string;
     count: number;
     percentage: number;
   }>;
-  community_cards_stats: {
-    hands_with_flop: number;
-    hands_with_turn: number;
-    hands_with_river: number;
-    percentage_to_flop: number;
-    percentage_to_turn: number;
-    percentage_to_river: number;
-  };
-  blinds_structure: {
-    small_blind: number;
-    big_blind: number;
-    ante: number;
+  stakes_distribution: Array<{
+    stakes: string;
+    count: number;
+    percentage: number;
+  }>;
+  intention_distribution: Array<{
+    intention: string;
+    count: number;
+    percentage: number;
+  }>;
+  money_stats: {
+    total_money_won: number;
+    biggest_pot: number;
+    biggest_loss: number;
+    average_pot_size: number;
   };
 }
 
@@ -50,197 +70,197 @@ export async function GET(request: NextRequest) {
   
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '200');
+    const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
     const player = searchParams.get('player');
+    const street = searchParams.get('street'); // PREFLOP, FLOP, TURN, RIVER
+    const action = searchParams.get('action'); // raise, call, fold, etc.
 
     db = await getApiDb();
     
-    // If player is specified, return player-specific hand history
+    // Build WHERE clause for filters
+    let whereConditions = ["player_id LIKE 'coinpoker-%'"];
+    let params: any[] = [];
+    
     if (player) {
-      const coinpokerPlayers = await getCoinpokerPlayers(db);
-      const targetPlayer = coinpokerPlayers.find(p => p.player_id === player);
-      
-      if (!targetPlayer) {
-        return NextResponse.json({ error: 'Player not found' }, { status: 404 });
-      }
-
-      // Generate realistic hand data based on player's actual statistics
-      const generatePlayerHands = (playerStats: any, count: number): HandHistoryData[] => {
-        const hands: HandHistoryData[] = [];
-        const positions = ['BTN', 'CO', 'HJ', 'UTG', 'SB', 'BB'];
-        const actions = ['fold', 'call', 'raise', '3bet', 'check', 'bet'];
-        const potTypes = ['NL', 'PL', 'FL'];
-        
-        // Card ranks and suits for realistic hole cards
-        const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-        const suits = ['h', 'd', 'c', 's'];
-        
-        const generateHoleCards = () => {
-          const card1 = ranks[Math.floor(Math.random() * ranks.length)] + suits[Math.floor(Math.random() * suits.length)];
-          let card2;
-          do {
-            card2 = ranks[Math.floor(Math.random() * ranks.length)] + suits[Math.floor(Math.random() * suits.length)];
-          } while (card2 === card1);
-          return [card1, card2].join(' ');
-        };
-
-        const generateCommunityCards = () => {
-          const numCards = Math.random() > 0.7 ? 5 : Math.random() > 0.5 ? 3 : 0; // 70% go to river, 20% to flop, 10% preflop
-          if (numCards === 0) return '';
-          
-          const cards = [];
-          const usedCards = new Set();
-          
-          for (let i = 0; i < numCards; i++) {
-            let card;
-            do {
-              card = ranks[Math.floor(Math.random() * ranks.length)] + suits[Math.floor(Math.random() * suits.length)];
-            } while (usedCards.has(card));
-            usedCards.add(card);
-            cards.push(card);
-          }
-          return cards.join(' ');
-        };
-
-        // Generate hands based on player's actual VPIP/PFR tendencies
-        for (let i = 0; i < count; i++) {
-          const vpipChance = playerStats.vpip || 25;
-          const pfrChance = playerStats.pfr || 18;
-          const isPlayed = Math.random() * 100 < vpipChance;
-          
-          let action = 'fold';
-          if (isPlayed) {
-            if (Math.random() * 100 < pfrChance) {
-              action = Math.random() > 0.7 ? '3bet' : 'raise';
-            } else {
-              action = 'call';
-            }
-          }
-
-          // Result based on net win rate
-          const avgWinPerHand = (playerStats.net_win_bb || 0) / Math.max(playerStats.total_hands, 1);
-          const baseWin = Math.round((Math.random() - 0.5) * 40 + avgWinPerHand * 2);
-          const potSize = Math.round(Math.random() * 30 + 10); // 10-40 BB pots
-          const winAmount = action === 'fold' ? 0 : baseWin;
-
-          // Generate timestamp within last 30 days
-          const timestamp = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
-
-          hands.push({
-            hand_id: `${player.replace('/', '_')}_${i + 1}`,
-            timestamp: timestamp.toISOString(),
-            position: positions[Math.floor(Math.random() * positions.length)],
-            hole_cards: generateHoleCards(),
-            final_action: action,
-            pot_size: potSize,
-            win_amount: winAmount,
-            community_cards: generateCommunityCards(),
-            pot_type: potTypes[Math.floor(Math.random() * potTypes.length)]
-          });
-        }
-        
-        return hands.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      };
-
-      const handHistory = generatePlayerHands(targetPlayer, limit);
-
-      return NextResponse.json({
-        hands: handHistory,
-        player_specific: true,
-        total: handHistory.length,
-        player_stats: {
-          vpip: targetPlayer.vpip,
-          pfr: targetPlayer.pfr,
-          total_hands: targetPlayer.total_hands,
-          net_win_bb: targetPlayer.net_win_bb
-        }
-      });
+      whereConditions.push("player_id = ?");
+      params.push(player);
+    }
+    
+    if (street) {
+      whereConditions.push("street = ?");
+      params.push(street.toUpperCase());
+    }
+    
+    if (action) {
+      whereConditions.push("action_type = ?");
+      params.push(action);
     }
 
-    // Generate general hand history statistics based on our actual player base
-    const coinpokerPlayers = await getCoinpokerPlayers(db);
-    const totalPlayers = coinpokerPlayers.length;
-    const totalHands = coinpokerPlayers.reduce((sum, p) => sum + (p.total_hands || 0), 0);
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // Generate realistic statistics
+    // Get actual hand history data from detailed_actions table
+    const handsQuery = `
+      SELECT 
+        hand_id,
+        player_id,
+        position,
+        street,
+        action_type,
+        amount,
+        hole_cards,
+        community_cards,
+        pot_before,
+        stack_before,
+        stack_after,
+        money_won,
+        net_win,
+        pot_type,
+        action_label,
+        stakes,
+        bet_size_category,
+        player_intention,
+        created_at as timestamp
+      FROM detailed_actions 
+      ${whereClause}
+      ORDER BY created_at DESC, hand_id DESC, sequence_num ASC
+      LIMIT ? OFFSET ?
+    `;
+    
+    params.push(limit, offset);
+    const hands = await db.all(handsQuery, params);
+
+    // Get comprehensive statistics
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total_actions,
+        COUNT(DISTINCT hand_id) as total_hands,
+        COUNT(DISTINCT player_id) as players_analyzed,
+        SUM(money_won) as total_money_won,
+        MAX(money_won) as biggest_pot,
+        MIN(money_won) as biggest_loss,
+        AVG(pot_before) as average_pot_size
+      FROM detailed_actions 
+      WHERE player_id LIKE 'coinpoker-%'
+    `;
+    
+    const generalStats = await db.get(statsQuery);
+
+    // Street distribution
+    const streetDistQuery = `
+      SELECT 
+        street,
+        COUNT(*) as count,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+      FROM detailed_actions 
+      WHERE player_id LIKE 'coinpoker-%'
+      GROUP BY street
+      ORDER BY count DESC
+    `;
+    const streetDistribution = await db.all(streetDistQuery);
+
+    // Action distribution
+    const actionDistQuery = `
+      SELECT 
+        action_type,
+        COUNT(*) as count,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+      FROM detailed_actions 
+      WHERE player_id LIKE 'coinpoker-%'
+      GROUP BY action_type
+      ORDER BY count DESC
+    `;
+    const actionDistribution = await db.all(actionDistQuery);
+
+    // Position distribution
+    const positionDistQuery = `
+      SELECT 
+        position,
+        COUNT(*) as count,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+      FROM detailed_actions 
+      WHERE player_id LIKE 'coinpoker-%' AND position IS NOT NULL
+      GROUP BY position
+      ORDER BY count DESC
+    `;
+    const positionDistribution = await db.all(positionDistQuery);
+
+    // Pot type distribution
+    const potTypeDistQuery = `
+      SELECT 
+        pot_type,
+        COUNT(*) as count,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+      FROM detailed_actions 
+      WHERE player_id LIKE 'coinpoker-%' AND pot_type IS NOT NULL
+      GROUP BY pot_type
+      ORDER BY count DESC
+    `;
+    const potTypeDistribution = await db.all(potTypeDistQuery);
+
+    // Stakes distribution
+    const stakesDistQuery = `
+      SELECT 
+        stakes,
+        COUNT(*) as count,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+      FROM detailed_actions 
+      WHERE player_id LIKE 'coinpoker-%' AND stakes IS NOT NULL
+      GROUP BY stakes
+      ORDER BY count DESC
+    `;
+    const stakesDistribution = await db.all(stakesDistQuery);
+
+    // Player intention distribution
+    const intentionDistQuery = `
+      SELECT 
+        player_intention,
+        COUNT(*) as count,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker-%'), 2) as percentage
+      FROM detailed_actions 
+      WHERE player_id LIKE 'coinpoker-%' AND player_intention IS NOT NULL
+      GROUP BY player_intention
+      ORDER BY count DESC
+    `;
+    const intentionDistribution = await db.all(intentionDistQuery);
+
     const stats: HandHistoryStats = {
-      total_hands: totalHands,
-      pot_type_distribution: [
-        { pot_type: 'NL', count: Math.round(totalHands * 0.8), percentage: 80 },
-        { pot_type: 'PL', count: Math.round(totalHands * 0.15), percentage: 15 },
-        { pot_type: 'FL', count: Math.round(totalHands * 0.05), percentage: 5 }
-      ],
-      position_distribution: [
-        { position: 'BTN', count: Math.round(totalHands * 0.16), percentage: 16.7 },
-        { position: 'CO', count: Math.round(totalHands * 0.16), percentage: 16.7 },
-        { position: 'HJ', count: Math.round(totalHands * 0.16), percentage: 16.7 },
-        { position: 'UTG', count: Math.round(totalHands * 0.17), percentage: 16.7 },
-        { position: 'SB', count: Math.round(totalHands * 0.17), percentage: 16.7 },
-        { position: 'BB', count: Math.round(totalHands * 0.17), percentage: 16.5 }
-      ],
-      player_count_distribution: [
-        { players: 6, count: Math.round(totalHands * 0.6), percentage: 60 },
-        { players: 5, count: Math.round(totalHands * 0.2), percentage: 20 },
-        { players: 4, count: Math.round(totalHands * 0.1), percentage: 10 },
-        { players: 3, count: Math.round(totalHands * 0.05), percentage: 5 },
-        { players: 2, count: Math.round(totalHands * 0.05), percentage: 5 }
-      ],
-      community_cards_stats: {
-        hands_with_flop: Math.round(totalHands * 0.3),
-        hands_with_turn: Math.round(totalHands * 0.25),
-        hands_with_river: Math.round(totalHands * 0.2),
-        percentage_to_flop: 30,
-        percentage_to_turn: 25,
-        percentage_to_river: 20
-      },
-      blinds_structure: {
-        small_blind: 1,
-        big_blind: 2,
-        ante: 0
+      total_hands: generalStats.total_hands || 0,
+      total_actions: generalStats.total_actions || 0,
+      players_analyzed: generalStats.players_analyzed || 0,
+      street_distribution: streetDistribution,
+      action_distribution: actionDistribution,
+      position_distribution: positionDistribution,
+      pot_type_distribution: potTypeDistribution,
+      stakes_distribution: stakesDistribution,
+      intention_distribution: intentionDistribution,
+      money_stats: {
+        total_money_won: generalStats.total_money_won || 0,
+        biggest_pot: generalStats.biggest_pot || 0,
+        biggest_loss: generalStats.biggest_loss || 0,
+        average_pot_size: generalStats.average_pot_size || 0
       }
     };
 
-    // Generate sample hands from multiple players
-    const sampleHands: HandHistoryData[] = [];
-    const samplePlayers = coinpokerPlayers.slice(0, 10); // Top 10 players
-    
-    samplePlayers.forEach((player, playerIndex) => {
-      const handsPerPlayer = Math.min(5, Math.floor(limit / samplePlayers.length));
-      for (let i = 0; i < handsPerPlayer; i++) {
-        const timestamp = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000); // Last 7 days
-        const positions = ['BTN', 'CO', 'HJ', 'UTG', 'SB', 'BB'];
-        const actions = ['fold', 'call', 'raise', 'check'];
-        
-        sampleHands.push({
-          hand_id: `sample_${playerIndex}_${i + 1}`,
-          timestamp: timestamp.toISOString(),
-          position: positions[Math.floor(Math.random() * positions.length)],
-          hole_cards: 'Hidden',
-          final_action: actions[Math.floor(Math.random() * actions.length)],
-          pot_size: Math.round(Math.random() * 50 + 10),
-          win_amount: Math.round((Math.random() - 0.5) * 20),
-          community_cards: Math.random() > 0.5 ? 'As Kh Qd Jc Ts' : '',
-          pot_type: 'NL'
-        });
-      }
-    });
-
     return NextResponse.json({
-      hands: sampleHands.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
-      stats,
-      pagination: {
-        total: totalHands,
-        limit,
-        offset,
-        has_more: offset + limit < totalHands
+      hands: hands,
+      stats: stats,
+      meta: {
+        returned_count: hands.length,
+        limit: limit,
+        offset: offset,
+        filters: {
+          player: player || null,
+          street: street || null,
+          action: action || null
+        }
       }
     });
 
   } catch (error) {
     console.error('Hand history API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch hand history data' },
+      { error: 'Failed to fetch hand history data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   } finally {

@@ -131,6 +131,10 @@ export async function GET(request: NextRequest) {
         total_hands: totalHands,
         avg_preflop_score: parseFloat(avgPreflopScore.toFixed(3))
       },
+      // For QuickStatsOverview compatibility
+      averageScore: parseFloat(avgPreflopScore.toFixed(1)),
+      playersWithData: totalPlayers,
+      topScore: totalPlayers > 0 ? Math.max(...filteredPlayers.map(p => p.avg_preflop_score)) : 0,
       filters: {
         minHands,
         limit

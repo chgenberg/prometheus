@@ -46,15 +46,7 @@ export default function DashboardNavigation({ activeTab, onTabChange }: Dashboar
       bgGradient: 'from-red-500/10 to-orange-500/10',
       stats: { label: 'Threats', value: '0' }
     },
-    {
-      id: 'ai-performance',
-      label: 'AI Analytics',
-      icon: <Brain className="h-5 w-5" />,
-      description: 'AI performance and decision analysis',
-      color: 'from-purple-500 to-pink-500',
-      bgGradient: 'from-purple-500/10 to-pink-500/10',
-      stats: { label: 'Accuracy', value: '94%' }
-    },
+
     {
       id: 'player-analysis',
       label: 'Player Analytics',
@@ -74,16 +66,7 @@ export default function DashboardNavigation({ activeTab, onTabChange }: Dashboar
       bgGradient: 'from-yellow-500/10 to-amber-500/10',
       stats: { label: 'Hands', value: '779' }
     },
-    {
-      id: 'monitoring',
-      label: 'Live Monitoring',
-      icon: <Eye className="h-5 w-5" />,
-      description: 'Real-time activity and alerts',
-      badge: 'Real-time',
-      color: 'from-indigo-500 to-blue-500',
-      bgGradient: 'from-indigo-500/10 to-blue-500/10',
-      stats: { label: 'Active Now', value: '12' }
-    },
+
 
   ];
 

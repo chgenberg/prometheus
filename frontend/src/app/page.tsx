@@ -27,12 +27,13 @@ import UnifiedPrometheusAnalytics from '../components/UnifiedPrometheusAnalytics
 
 interface SummaryData {
   hand_count: number;
+  actions_count: number;
   active_players: number;
 }
 
 function HomeContent() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [summary, setSummary] = useState<SummaryData>({ hand_count: 0, active_players: 0 });
+  const [summary, setSummary] = useState<SummaryData>({ hand_count: 0, actions_count: 0, active_players: 0 });
   const [loading, setLoading] = useState(true);
   
   // Get URL parameters using Next.js hooks
@@ -62,6 +63,7 @@ function HomeContent() {
       
       setSummary({
         hand_count: handHistoryData.stats?.total_hands || 0,
+        actions_count: handHistoryData.stats?.total_actions || 0,
         active_players: playersData.totalCount || 0
       });
     } catch (error) {
@@ -90,56 +92,14 @@ function HomeContent() {
           </div>
         );
       
-      case 'ai-performance':
-        return (
-          <div className="space-y-8">
-            <AIPerformanceAnalytics />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <WinRateAnalysis />
-              <PostflopAnalysis />
-            </div>
-            
-            {/* AI Performance Statistics */}
-            <div className="mt-8">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-white mb-2">🤖 AI Performance Overview</h3>
-                <p className="text-gray-400">Advanced AI analysis from 184 CoinPoker players with 137k+ action-level insights</p>
-              </div>
-              
-              {/* Analytics Capabilities Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 p-4 rounded-lg border border-red-500/20">
-                  <div className="text-red-400 text-sm font-medium">🔴 Risk Detection</div>
-                  <div className="text-white text-lg font-bold">5,967</div>
-                  <div className="text-gray-400 text-xs">Risk events analyzed</div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 p-4 rounded-lg border border-blue-500/20">
-                  <div className="text-blue-400 text-sm font-medium">📊 Session Analytics</div>
-                  <div className="text-white text-lg font-bold">30,622</div>
-                  <div className="text-gray-400 text-xs">Session data points</div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 p-4 rounded-lg border border-purple-500/20">
-                  <div className="text-purple-400 text-sm font-medium">⚡ Performance Analysis</div>
-                  <div className="text-white text-lg font-bold">6,003</div>
-                  <div className="text-gray-400 text-xs">Performance metrics</div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 p-4 rounded-lg border border-green-500/20">
-                  <div className="text-green-400 text-sm font-medium">🎯 Action Analysis</div>
-                  <div className="text-white text-lg font-bold">137,967</div>
-                  <div className="text-gray-400 text-xs">Detailed actions</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      
       case 'player-analysis':
         return (
           <div className="space-y-8">
             <UnifiedPrometheusAnalytics />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <WinRateAnalysis />
+              <PostflopAnalysis />
+            </div>
           </div>
         );
       
@@ -154,31 +114,10 @@ function HomeContent() {
           </div>
         );
       
-      case 'monitoring':
-        return (
-          <div className="space-y-8">
-            <RealTimeDashboard />
-            <SystemStatusDashboard />
-            {isDebugMode && (
-              <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4">
-                <h3 className="text-blue-400 font-semibold mb-2">🗄️ Raw Player Database (Debug Mode)</h3>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <FaDatabase className="mr-2 text-blue-600" />
-                    Technical Player Database
-                  </h2>
-                  <VirtualizedPlayerList maxHeight={400} onPlayerSelect={handlePlayerSelect} />
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      
-
-      
       default:
         return (
           <div className="space-y-8">
+            <QuickStatsOverview />
             <SystemStatusDashboard />
             <GlobalSecurityOverview />
           </div>
@@ -193,6 +132,15 @@ function HomeContent() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-3 sm:py-4">
             <div className="flex items-center space-x-2 sm:space-x-4">
+              {/* Active Players Count - Left Side */}
+              <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-green-500/10 rounded-lg border border-green-500/30">
+                <Users className="h-4 w-4 text-green-400" />
+                <div className="text-left">
+                  <div className="text-green-400 text-xs font-medium">Active Players</div>
+                  <div className="text-white text-sm font-bold">{summary.active_players || '184'}</div>
+                </div>
+              </div>
+              
               <div className="relative">
                 <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-50"></div>
                 <GiPokerHand className="relative h-8 w-8 sm:h-12 sm:w-12 text-indigo-500" />
@@ -205,9 +153,11 @@ function HomeContent() {
                 </a>
                 <p className="text-xs sm:text-sm text-gray-400 flex items-center gap-1 sm:gap-2">
                   <FaDatabase className="text-indigo-500 text-xs sm:text-base" />
-                  <span className="hidden sm:inline">{summary.hand_count > 0 ? summary.hand_count.toLocaleString('en-US') : '137,967'} hands analyzed</span>
-                  <span className="sm:hidden">{summary.hand_count > 0 ? (summary.hand_count / 1000).toFixed(0) : '138'}k hands</span>
-                  <span className="text-green-400 ml-2">• {summary.active_players} active players</span>
+                  <span className="hidden sm:inline">{summary.hand_count > 0 ? summary.hand_count.toLocaleString('en-US') : '18,200'} hands analyzed</span>
+                  <span className="sm:hidden">{summary.hand_count > 0 ? (summary.hand_count / 1000).toFixed(0) : '18'}k hands</span>
+                  <span className="text-cyan-400 ml-2">• {summary.actions_count > 0 ? summary.actions_count.toLocaleString('en-US') : '137,967'} actions</span>
+                  {/* Mobile-only active players */}
+                  <span className="text-green-400 ml-2 sm:hidden">• {summary.active_players || '184'} players</span>
                 </p>
               </div>
             </div>
@@ -265,13 +215,64 @@ function HomeContent() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="mt-16 pb-8 text-center text-gray-500 text-sm">
-        <p>Powered by Prometheus Poker Analytics</p>
-        <p className="text-xs mt-1">Advanced AI-driven poker analysis and player insights</p>
+      {/* Footer with AI Analytics and Live Monitoring */}
+      <footer className="mt-16 bg-gray-900/50 border-t border-gray-700/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8">
+          {/* Compact AI Analytics */}
+          <div className="mb-8">
+            <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/30">
+              <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
+                🤖 AI Performance Analytics
+                <span className="ml-2 text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded-full">Compact View</span>
+              </h4>
+              <div className="text-xs text-gray-400 mb-3">184 CoinPoker players analyzed with 137k+ action-level insights</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                  <div className="text-red-400 text-xs font-medium">🔴 Risk Detection</div>
+                  <div className="text-white text-sm font-bold">5,967</div>
+                </div>
+                <div className="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
+                  <div className="text-blue-400 text-xs font-medium">📊 Session Analytics</div>
+                  <div className="text-white text-sm font-bold">30,622</div>
+                </div>
+                <div className="bg-purple-500/10 p-3 rounded-lg border border-purple-500/20">
+                  <div className="text-purple-400 text-xs font-medium">⚡ Performance</div>
+                  <div className="text-white text-sm font-bold">6,003</div>
+                </div>
+                <div className="bg-green-500/10 p-3 rounded-lg border border-green-500/20">
+                  <div className="text-green-400 text-xs font-medium">🎯 Action Analysis</div>
+                  <div className="text-white text-sm font-bold">137,967</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Live Monitoring */}
+          {isDebugMode && (
+            <div className="mb-8">
+              <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/30">
+                <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
+                  📡 Live Monitoring
+                  <span className="ml-2 text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">Debug Mode</span>
+                </h4>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                    <FaDatabase className="mr-2 text-blue-600" />
+                    Player Database Monitor
+                  </h5>
+                  <VirtualizedPlayerList maxHeight={200} onPlayerSelect={handlePlayerSelect} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Standard Footer */}
+          <div className="text-center text-gray-500 text-sm border-t border-gray-700/30 pt-6">
+            <p>Powered by Prometheus Poker Analytics</p>
+            <p className="text-xs mt-1">Advanced AI-driven poker analysis and player insights</p>
+          </div>
+        </div>
       </footer>
-
-
     </div>
   );
 }
