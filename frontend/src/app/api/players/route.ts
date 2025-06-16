@@ -134,8 +134,8 @@ export async function GET(request: NextRequest) {
           bValue = b.intention_score || 0;
           break;
         case 'collusion_score':
-          aValue = a.collusion_score || 0;
-          bValue = b.collusion_score || 0;
+          aValue = a.collution_score || 0;
+          bValue = b.collution_score || 0;
           break;
         default:
           aValue = a.total_hands || 0;
@@ -199,7 +199,7 @@ export async function GET(request: NextRequest) {
         turn_score,
         river_score,
         intention_score: player.intention_score || 0,
-        collusion_score: player.collusion_score || 0,
+        collusion_score: player.collution_score || 0,
         bad_actor_score: player.bad_actor_score || 0,
         bot_score: player.bad_actor_score || 0 // Use bad_actor_score as bot_score
       };
