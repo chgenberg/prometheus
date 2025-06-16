@@ -332,23 +332,7 @@ export type PlayerStat = {
   last_updated?: string;
 };
 
-const sortableColumns: { [key: string]: string } = {
-  player_name: 'm.player_id',
-  hands_played: 'm.total_hands',
-  net_win_bb: 'm.net_win_bb',
-  net_win_chips: 'CASE WHEN m.net_win LIKE "$%" THEN CAST(REPLACE(REPLACE(m.net_win, "$", ""), ",", "") AS REAL) ELSE 0 END',
-  win_rate_percent: '(m.net_win_bb / NULLIF(m.total_hands, 0)) * 100',
-  preflop_vpip: 'm.vpip',
-  preflop_pfr: 'm.pfr',
-  avg_score_preflop: 'm.avg_preflop_score',
-  avg_score_postflop: 'm.avg_postflop_score',
-  flop_score: 'ps.flop_scores',
-  turn_score: 'ps.turn_scores',
-  river_score: 'ps.river_scores',
-  intention_score: 'm.intention_score',
-  collusion_score: 'm.collution_score',
-  bad_actor_score: 'm.bad_actor_score',
-};
+// Removed unused sortableColumns constant
 
 export async function getPlayerStats(
   searchParams: { [key: string]: string | string[] | undefined }
@@ -365,8 +349,8 @@ export async function getPlayerStats(
   const limitNumber = 50;
   const offset = (pageNumber - 1) * limitNumber;
 
-  let whereClauses: string[] = [`player_name LIKE 'coinpoker/%'`];
-  let queryParams: (string | number)[] = [];
+  const whereClauses: string[] = [`player_name LIKE 'coinpoker/%'`];
+  const queryParams: (string | number)[] = [];
 
   if (filters && typeof filters === 'string') {
     try {

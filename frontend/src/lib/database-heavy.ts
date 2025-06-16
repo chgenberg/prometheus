@@ -19,16 +19,12 @@ export async function getHeavyDb(): Promise<Database> {
     './heavy_analysis3.db',
   ];
   
-  let dbPath: string | undefined = possiblePaths.find(p => fs.existsSync(p));
+  const dbPath = possiblePaths.find(p => fs.existsSync(p)) ?? 
+    (process.env.VERCEL ? path.join(process.cwd(), 'heavy_analysis3.db') : null);
 
   if (!dbPath) {
-    // Special case for Vercel deployment where cwd is /var/task
-    if (process.env.VERCEL) {
-        dbPath = path.join(process.cwd(), 'heavy_analysis3.db');
-    } else {
-        console.error('Heavy DB not found in any of the expected locations:', possiblePaths);
-        throw new Error('heavy_analysis3.db not found.');
-    }
+    console.error('Heavy DB not found in any of the expected locations:', possiblePaths);
+    throw new Error('heavy_analysis3.db not found.');
   }
   
   const finalDbPath = dbPath;
