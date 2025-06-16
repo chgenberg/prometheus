@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
   try {
     db = await getApiDb();
     
-    // Get Coinpoker players with security data
-    const players = await getCoinpokerPlayers(db);
+    // Get all Coinpoker players using standardized helper
+    const allPlayers = await getCoinpokerPlayers(db, 200); // Increased from default 50 to 200
     
-    if (!players || players.length === 0) {
+    if (!allPlayers || allPlayers.length === 0) {
       // Return fallback data if no players found
       return NextResponse.json({
         securityMetrics: {
@@ -59,8 +59,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate security metrics
-    const totalPlayers = players.length;
-    const playersWithScores = players.filter(p => 
+    const totalPlayers = allPlayers.length;
+    const playersWithScores = allPlayers.filter(p => 
       (p.bad_actor_score !== null && p.bad_actor_score !== undefined) ||
       (p.intention_score !== null && p.intention_score !== undefined) ||
       (p.collution_score !== null && p.collution_score !== undefined)
@@ -82,8 +82,8 @@ export async function GET(request: NextRequest) {
       ? playersWithScores.reduce((sum, p) => sum + (p.bad_actor_score || 0), 0) / playersWithScores.length
       : 0;
 
-    const avgHandsPerPlayer = players.length > 0 
-      ? players.reduce((sum, p) => sum + (p.total_hands || 0), 0) / players.length
+    const avgHandsPerPlayer = allPlayers.length > 0 
+      ? allPlayers.reduce((sum, p) => sum + (p.total_hands || 0), 0) / allPlayers.length
       : 0;
 
     // Calculate risk distribution

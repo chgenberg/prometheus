@@ -15,12 +15,12 @@ export async function GET(request: NextRequest) {
   let db;
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = parseInt(searchParams.get('limit') || '50');
     
     db = await getApiDb();
 
-    // Get all Coinpoker players using standardized helper
-    const allPlayers = await getCoinpokerPlayers(db);
+    // Get all Coinpoker players using standardized helper with more data
+    const allPlayers = await getCoinpokerPlayers(db, 200); // Get more players for activity feed
     
     if (!allPlayers || allPlayers.length === 0) {
       return NextResponse.json([]);

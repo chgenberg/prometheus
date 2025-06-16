@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     
     const query: PlayersQuery = {
       page: parseInt(searchParams.get('page') || '0'),
-      limit: Math.min(parseInt(searchParams.get('limit') || '50'), 100),
+      limit: Math.min(parseInt(searchParams.get('limit') || '200'), 500),
       search: searchParams.get('player_name') || searchParams.get('search') || '',
       sortBy: searchParams.get('sortBy') || 'total_hands',
       sortOrder: (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc',

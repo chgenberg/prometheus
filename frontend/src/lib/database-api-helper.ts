@@ -25,7 +25,7 @@ export async function closeDb(db: Database): Promise<void> {
 }
 
 // Helper to get Coinpoker players with proper filtering
-export async function getCoinpokerPlayers(db: Database, limit: number = 50, additionalWhere: string = ''): Promise<any[]> {
+export async function getCoinpokerPlayers(db: Database, limit: number = 200, additionalWhere: string = ''): Promise<any[]> {
   const whereClause = additionalWhere 
     ? `WHERE player_id LIKE 'coinpoker/%' AND ${additionalWhere}`
     : `WHERE player_id LIKE 'coinpoker/%'`;

@@ -1,13 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getApiDb, closeDb, getCoinpokerPlayers } from '../../../lib/database-api-helper';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   let db;
   try {
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '200'); // Increased from 100 to 200
+    
     db = await getApiDb();
     
-    // Get Coinpoker players using the helper function
-    const allPlayers = await getCoinpokerPlayers(db);
+    // Get Coinpoker players using the helper function with increased limit
+    const allPlayers = await getCoinpokerPlayers(db, limit);
     
     if (!allPlayers || allPlayers.length === 0) {
       return NextResponse.json({
@@ -89,6 +92,8 @@ export async function GET() {
     
     const avgPostflopScore = streetComparison.reduce((sum, s) => sum + s.avg_score, 0) / 3;
     const avgDifficulty = streetComparison.reduce((sum, s) => sum + s.difficulty, 0) / 3;
+    
+    const minHands = parseInt(searchParams.get('minHands') || '50');
     
     return NextResponse.json({
       players_with_data: totalPlayers,
