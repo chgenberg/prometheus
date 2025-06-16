@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action'); // raise, call, fold, etc.
 
     // Build WHERE clause for filters
-    let whereConditions = ["player_id LIKE 'CoinPoker%'"];
+    let whereConditions = ["player_id LIKE 'coinpoker%'"];
     let params: any[] = [];
     
     if (player) {
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
         MIN(money_won) as biggest_loss,
         AVG(pot_before) as average_pot_size
       FROM detailed_actions 
-      WHERE player_id LIKE 'CoinPoker%'
+      WHERE player_id LIKE 'coinpoker%'
     `;
     
     const statsResult = await queryTurso(statsQuery);
@@ -149,9 +149,9 @@ export async function GET(request: NextRequest) {
       SELECT 
         street,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'CoinPoker%'
+      WHERE player_id LIKE 'coinpoker%'
       GROUP BY street
       ORDER BY count DESC
     `;
@@ -163,9 +163,9 @@ export async function GET(request: NextRequest) {
       SELECT 
         action_type,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'CoinPoker%'
+      WHERE player_id LIKE 'coinpoker%'
       GROUP BY action_type
       ORDER BY count DESC
     `;
@@ -177,9 +177,9 @@ export async function GET(request: NextRequest) {
       SELECT 
         position,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'CoinPoker%' AND position IS NOT NULL
+      WHERE player_id LIKE 'coinpoker%' AND position IS NOT NULL
       GROUP BY position
       ORDER BY count DESC
     `;
@@ -191,9 +191,9 @@ export async function GET(request: NextRequest) {
       SELECT 
         pot_type,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'CoinPoker%' AND pot_type IS NOT NULL
+      WHERE player_id LIKE 'coinpoker%' AND pot_type IS NOT NULL
       GROUP BY pot_type
       ORDER BY count DESC
     `;
@@ -205,9 +205,9 @@ export async function GET(request: NextRequest) {
       SELECT 
         stakes,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'CoinPoker%' AND stakes IS NOT NULL
+      WHERE player_id LIKE 'coinpoker%' AND stakes IS NOT NULL
       GROUP BY stakes
       ORDER BY count DESC
     `;
@@ -219,9 +219,9 @@ export async function GET(request: NextRequest) {
       SELECT 
         player_intention,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'CoinPoker%'), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM detailed_actions WHERE player_id LIKE 'coinpoker%'), 2) as percentage
       FROM detailed_actions 
-      WHERE player_id LIKE 'CoinPoker%' AND player_intention IS NOT NULL
+      WHERE player_id LIKE 'coinpoker%' AND player_intention IS NOT NULL
       GROUP BY player_intention
       ORDER BY count DESC
     `;
