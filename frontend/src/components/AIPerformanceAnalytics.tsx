@@ -53,10 +53,18 @@ export default function AIPerformanceAnalytics() {
         const playersWithPreflopData = data.players.filter((p: AIPlayer) => p.avg_preflop_score > 0).length;
         const playersWithPostflopData = data.players.filter((p: AIPlayer) => p.avg_postflop_score > 0).length;
         
-        const avgPreflopScore = data.players.reduce((sum: number, p: AIPlayer) => 
-          sum + p.avg_preflop_score, 0) / totalPlayers;
-        const avgPostflopScore = data.players.reduce((sum: number, p: AIPlayer) => 
-          sum + p.avg_postflop_score, 0) / totalPlayers;
+        // Only calculate averages for players with actual data (score > 0)
+        const avgPreflopScore = playersWithPreflopData > 0 
+          ? data.players
+              .filter((p: AIPlayer) => p.avg_preflop_score > 0)
+              .reduce((sum: number, p: AIPlayer) => sum + p.avg_preflop_score, 0) / playersWithPreflopData
+          : 0;
+          
+        const avgPostflopScore = playersWithPostflopData > 0
+          ? data.players
+              .filter((p: AIPlayer) => p.avg_postflop_score > 0)
+              .reduce((sum: number, p: AIPlayer) => sum + p.avg_postflop_score, 0) / playersWithPostflopData
+          : 0;
         
         setMetrics({
           totalPlayers,
