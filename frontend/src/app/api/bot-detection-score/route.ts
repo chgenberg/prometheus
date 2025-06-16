@@ -19,8 +19,26 @@ interface BotScoreResult {
 
 export async function GET(request: NextRequest) {
     try {
-        // Direct database connection to heavy_analysis3.db
-        const dbPath = path.join(process.cwd(), '..', 'heavy_analysis3.db');
+        // Find database using multiple possible paths
+        const possiblePaths = [
+            path.join(process.cwd(), 'heavy_analysis3.db'), // Primary Vercel production path
+            './heavy_analysis3.db', // Alternative production path  
+            path.join(process.cwd(), '..', 'heavy_analysis3.db'), // Development path
+        ];
+        
+        let dbPath: string | null = null;
+        for (const testPath of possiblePaths) {
+            const fs = require('fs');
+            if (fs.existsSync(testPath)) {
+                dbPath = testPath;
+                break;
+            }
+        }
+        
+        if (!dbPath) {
+            throw new Error('Database file not found');
+        }
+        
         const db = await open({
             filename: dbPath,
             driver: sqlite3.Database

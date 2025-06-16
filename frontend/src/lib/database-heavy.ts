@@ -14,12 +14,13 @@ export async function getHeavyDb(): Promise<Database> {
 
   // Try multiple possible paths for the database
   const possiblePaths = [
-    // Production Vercel paths
+    // Primary Vercel production path
     path.join(process.cwd(), 'heavy_analysis3.db'), // For scripts running from frontend root
+    // Alternative production paths
+    './heavy_analysis3.db',
     path.join(process.cwd(), 'src', 'heavy_analysis3.db'),
     // Local development paths
     path.join(process.cwd(), '..', 'heavy_analysis3.db'), // For scripts running from a deeper folder
-    './heavy_analysis3.db',
     // Additional backup paths
     path.join(__dirname, '..', '..', 'heavy_analysis3.db'),
     path.join(__dirname, '..', '..', '..', 'heavy_analysis3.db'),

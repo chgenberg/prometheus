@@ -9,10 +9,10 @@ export async function getApiDb(): Promise<Database> {
   
   // Try multiple possible paths for the database
   const possiblePaths = [
-    path.join(process.cwd(), 'heavy_analysis3.db'), // Root of frontend
-    path.join(process.cwd(), '..', 'heavy_analysis3.db'), // Project root
+    path.join(process.cwd(), 'heavy_analysis3.db'), // Primary Vercel production path
+    './heavy_analysis3.db', // Alternative production path
+    path.join(process.cwd(), '..', 'heavy_analysis3.db'), // Project root for development
     path.join(process.cwd(), 'frontend', 'heavy_analysis3.db'), // If running from project root
-    './heavy_analysis3.db',
     './frontend/heavy_analysis3.db'
   ];
 

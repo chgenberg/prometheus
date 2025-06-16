@@ -23,12 +23,13 @@ async function initializeDatabase(): Promise<Database> {
   }
   
   const possiblePaths = [
-    // Production Vercel paths
+    // Primary Vercel production path
     path.join(process.cwd(), 'heavy_analysis3.db'),
+    // Alternative Vercel paths
+    './heavy_analysis3.db',
     path.join(process.cwd(), 'src', 'heavy_analysis3.db'),
     // Local development paths
     path.join(process.cwd(), '..', 'heavy_analysis3.db'),
-    './heavy_analysis3.db',
     // Additional backup paths
     path.join(__dirname, '..', '..', 'heavy_analysis3.db'),
     path.join(__dirname, '..', '..', '..', 'heavy_analysis3.db'),
