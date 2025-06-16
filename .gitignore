@@ -18,11 +18,11 @@ dist/
 .env.production.local
 
 # Database files (IMPORTANT: Don't commit database files)
-*.db
-*.sqlite
-*.sqlite3
-heavy_analysis*.db*
-database.db
+# *.db
+# *.sqlite
+# *.sqlite3
+# heavy_analysis*.db*
+# database.db
 
 # Logs
 logs
