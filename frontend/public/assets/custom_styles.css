@@ -1,0 +1,124 @@
+/* Custom Styles for Player Comparison Component */
+
+/* Dark theme dropdown styling */
+.dash-dropdown-dark .Select-control {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+.dash-dropdown-dark .Select-value-label {
+    color: #e2e8f0 !important;
+}
+
+.dash-dropdown-dark .Select-placeholder {
+    color: #64748b !important;
+}
+
+.dash-dropdown-dark .Select-input input {
+    color: #e2e8f0 !important;
+}
+
+.dash-dropdown-dark .Select-menu-outer {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+.dash-dropdown-dark .Select-option {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+.dash-dropdown-dark .Select-option:hover {
+    background-color: #334155 !important;
+}
+
+.dash-dropdown-dark .Select-option.is-selected {
+    background-color: #6366f1 !important;
+}
+
+.dash-dropdown-dark .Select-multi-value-wrapper {
+    background-color: #0f172a !important;
+}
+
+.dash-dropdown-dark .Select-value {
+    background-color: #6366f1 !important;
+    border-color: #6366f1 !important;
+    color: white !important;
+}
+
+.dash-dropdown-dark .Select-value-icon {
+    border-right-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Stage button active styles */
+.stage-btn.active {
+    background-color: #6366f1 !important;
+    border-color: #6366f1 !important;
+    color: white !important;
+}
+
+.stage-btn:not(.active):hover {
+    background-color: rgba(99, 102, 241, 0.1) !important;
+    border-color: #6366f1 !important;
+}
+
+/* Card hover effects */
+.hover-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+    cursor: pointer;
+}
+
+/* Loading spinner customization */
+._dash-loading {
+    font-family: "Segoe UI", -apple-system, sans-serif;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Chart container animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chart-container {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Button group styling */
+.btn-group > .btn:not(:last-child):not(.dropdown-toggle) {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Table row hover */
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td.dash-cell {
+    transition: background-color 0.2s ease;
+}
+
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner tr:hover td {
+    background-color: rgba(99, 102, 241, 0.05) !important;
+} 

@@ -1,0 +1,409 @@
+/* CSS-animationer för chattkomponenten */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-bubble-animation {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Förbättrad pulsanimation för chat-knappen med glöd-effekt - optimerad för smidig hover */
+@keyframes pulse-glow {
+  0% {
+    filter: drop-shadow(0 8px 32px rgba(99, 102, 241, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 12px 48px rgba(99, 102, 241, 0.6));
+  }
+  100% {
+    filter: drop-shadow(0 8px 32px rgba(99, 102, 241, 0.4));
+  }
+}
+
+@keyframes pulse-scale {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+#chat-button {
+  animation: pulse-glow 3s ease-in-out infinite, pulse-scale 3s ease-in-out infinite;
+  transition: transform 0.2s ease-out, filter 0.3s ease-out;
+  will-change: transform, filter;
+}
+
+#chat-button:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 16px 64px rgba(99, 102, 241, 0.8));
+  animation-play-state: paused;
+}
+
+/* Blinkande text för AI-chat med förbättrad timing */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+#chat-button div div:first-child {
+  animation: blink 2s ease-in-out infinite;
+}
+
+/* Modal animationer */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes modalSlideOut {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
+/* Förbättrade stilar för chattkomponenten */
+#chat-popup {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#chat-popup.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+#chat-popup.hidden {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+/* Modal backdrop animationer */
+#chat-modal-backdrop {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover-effekter för knappar i modal */
+#chat-mode-general-modal:hover,
+#chat-mode-poker-modal:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.3);
+}
+
+#send-chat-modal:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.5), 0 0 0 1px rgba(255,255,255,0.2);
+}
+
+#close-chat-modal:hover {
+  background: rgba(255,255,255,0.25) !important;
+  transform: scale(1.1);
+  box-shadow: 0 8px 24px rgba(255,255,255,0.2);
+}
+
+/* Input focus-effekter */
+#chat-input-modal:focus,
+#poker-hand-modal:focus,
+#poker-position-modal:focus,
+#poker-action-modal:focus {
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 8px 24px rgba(99, 102, 241, 0.2) !important;
+  outline: none;
+}
+
+/* Meddelande-animation */
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.chat-message {
+  animation: messageSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Laddningsanimation förbättringar */
+#chat-loading-container-modal {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Scroll-bar styling för chat-meddelanden */
+#chat-modal-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+#chat-modal-messages::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.3);
+  border-radius: 4px;
+}
+
+#chat-modal-messages::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #6366f1 0%, #6366f1 100%);
+  border-radius: 4px;
+}
+
+#chat-modal-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5855dd 0%, #5855dd 100%);
+}
+
+/* Avatar animation */
+#chat-modal-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.6), 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+/* Welcome message hover effekt */
+#chat-modal-messages > div:first-child:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 48px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* Responsiv design för mindre skärmar */
+@media (max-width: 768px) {
+  #chat-button {
+    width: 150px;
+    height: 150px;
+    bottom: 15px;
+    right: 15px;
+  }
+  
+  #chat-modal-content {
+    width: 95% !important;
+    height: 90% !important;
+    transform: translate(-50%, -50%) scale(0.9) !important;
+  }
+  
+  #chat-button div div:first-child {
+    font-size: 12px !important;
+    top: -30px !important;
+  }
+}
+
+/* Action button animations */
+#action-fold-modal:hover, #action-fold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(220, 53, 69, 0.4);
+}
+
+#action-call-modal:hover, #action-call:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(23, 162, 184, 0.4);
+}
+
+#action-raise-modal:hover, #action-raise:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 193, 7, 0.4);
+}
+
+#action-check-modal:hover, #action-check:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(40, 167, 69, 0.4);
+}
+
+#action-clear-modal:hover, #action-clear:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(108, 117, 125, 0.4);
+}
+
+/* Action buttons active states */
+#action-fold-modal:active, #action-fold:active {
+  transform: translateY(0);
+  background-color: #dc3545 !important;
+  color: white !important;
+}
+
+#action-call-modal:active, #action-call:active {
+  transform: translateY(0);
+  background-color: #17a2b8 !important;
+  color: white !important;
+}
+
+#action-raise-modal:active, #action-raise:active {
+  transform: translateY(0);
+  background-color: #ffc107 !important;
+  color: black !important;
+}
+
+#action-check-modal:active, #action-check:active {
+  transform: translateY(0);
+  background-color: #28a745 !important;
+  color: white !important;
+}
+
+/* Readonly input styling för action sequence */
+#poker-action-modal[readonly], #poker-action[readonly] {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+  cursor: default;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #667eea !important;
+}
+
+/* Förbättrade transitions för interaktiva element - mer specifik för att undvika konflikter */
+button, .btn, input, select, textarea {
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Transform transitions endast för element som behöver dem */
+.modal-content, .chat-message, .expand-btn, .expand-btn-popup {
+  transition: transform 0.3s ease;
+}
+
+/* Kontrollpanel nederst styling */
+#chat-modal-content > div:last-child {
+  z-index: 10;
+}
+
+/* Säkerställ att meddelanden scrollar korrekt med kontrollpanel nederst */
+#chat-modal-messages {
+  padding-bottom: 20px !important;
+}
+
+/* Smooth scroll för meddelanden */
+#chat-modal-messages {
+  scroll-behavior: smooth;
+}
+
+/* Förbättrad styling för kontrollpanelen */
+.control-panel-bottom {
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Mode selection buttons animations */
+#chat-mode-general, #chat-mode-poker, #chat-mode-hh,
+#chat-mode-general-modal, #chat-mode-poker-modal, #chat-mode-hh-modal {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover effects */
+#chat-mode-general:hover, #chat-mode-general-modal:hover {
+  transform: translateY(-2px);
+  background: rgba(102, 126, 234, 0.2) !important;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  border-color: #667eea !important;
+}
+
+#chat-mode-poker:hover, #chat-mode-poker-modal:hover {
+  transform: translateY(-2px);
+  background: rgba(59, 130, 246, 0.2) !important;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  border-color: #3b82f6 !important;
+}
+
+#chat-mode-hh:hover, #chat-mode-hh-modal:hover {
+  transform: translateY(-2px);
+  background: rgba(16, 185, 129, 0.2) !important;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+  border-color: #10b981 !important;
+}
+
+/* Active states */
+#chat-mode-general.active, #chat-mode-general-modal.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.6);
+}
+
+#chat-mode-poker.active, #chat-mode-poker-modal.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  color: white !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.6);
+}
+
+#chat-mode-hh.active, #chat-mode-hh-modal.active {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+  color: white !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.6);
+}
+
+/* Ripple effect on click */
+@keyframes ripple {
+  from {
+    transform: scale(0);
+    opacity: 1;
+  }
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+#chat-mode-general::after, #chat-mode-poker::after, #chat-mode-hh::after,
+#chat-mode-general-modal::after, #chat-mode-poker-modal::after, #chat-mode-hh-modal::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 1px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%) scale(0);
+}
+
+#chat-mode-general:active::after, #chat-mode-poker:active::after, #chat-mode-hh:active::after,
+#chat-mode-general-modal:active::after, #chat-mode-poker-modal:active::after, #chat-mode-hh-modal:active::after {
+  animation: ripple 0.5s ease-out;
+}
+
+/* Icon animations */
+#chat-mode-general i, #chat-mode-poker i, #chat-mode-hh i,
+#chat-mode-general-modal i, #chat-mode-poker-modal i, #chat-mode-hh-modal i {
+  transition: transform 0.3s ease;
+}
+
+#chat-mode-general:hover i, #chat-mode-general-modal:hover i {
+  transform: rotate(15deg);
+}
+
+#chat-mode-poker:hover i, #chat-mode-poker-modal:hover i {
+  transform: rotate(-15deg);
+}
+
+#chat-mode-hh:hover i, #chat-mode-hh-modal:hover i {
+  transform: scale(1.2);
+}
+
+/* ButtonGroup styling enhancements */
+.btn-group {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-radius: 25px;
+}
+
+/* Smooth transition for mode changes */
+#poker-query-fields, #hh-query-fields,
+#poker-query-fields-modal, #hh-query-fields-modal {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+} 

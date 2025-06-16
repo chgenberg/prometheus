@@ -1,0 +1,416 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500&display=swap');
+
+/* ========================================
+   🎛️ KONTROLLPANEL FÖR GYM-BAKGRUND
+   ========================================
+   Ändra dessa värden för att justera balansen mellan gym-bilden och blå bakgrund:
+   
+   📊 TRANSPARENS-VÄRDEN (0.0 = helt transparent, 1.0 = helt ogenomskinlig):
+   --gym-blue-overlay: Hur mycket blå färg ska täcka gym-bilden (0.2 = lite blått, 0.6 = mycket blått)
+   --card-transparency: Hur genomskinliga kort/tabeller ska vara (0.6 = mer gym-bild, 0.9 = mer blått)
+   --header-transparency: Hur genomskinliga headers ska vara
+   
+   🖼️ För att byta bild: Ändra 'gym.png' till annan bild i assets-mappen
+*/
+:root {
+  /* GYM-BAKGRUND KONTROLLER - ÄNDRA DESSA VÄRDEN! */
+  --gym-blue-overlay: 0.8;        /* 🔵 Blå overlay över gym-bilden (0.0-1.0) */
+  --gym-image: 'gym.png';          /* 🖼️ Bildens filnamn i assets-mappen */
+  
+  /* UI-TRANSPARENS KONTROLLER - ÄNDRA DESSA VÄRDEN! */
+  --card-transparency: 0.8;        /* 🃏 Kort och tabeller (0.0-1.0) */
+  --header-transparency: 0.8;      /* 📋 Headers och rubriker (0.0-1.0) */
+  --hover-transparency: 0.85;      /* 🖱️ Hover-effekter (0.0-1.0) */
+  
+  /* Färgpalett - behöver normalt inte ändras */
+  --pp-bg:          #1a1a2e;
+  --pp-card:        #16213e;
+  --pp-header:      #0f3460;
+  --pp-border:      #4a00e0;
+  --pp-accent:      #7b2cbf;
+  --pp-text-light:  #f8f9fa;
+  --pp-text-medium: #e0e0e0;
+  --pp-positive:    #4ade80;
+  --pp-negative:    #f87171;
+}
+
+body {
+  margin: 0; 
+  padding: 0;
+  padding-top: 70px;  /* Plats för anti-fraud baren */
+  background-color: var(--pp-bg);
+  background-image: 
+    linear-gradient(to bottom right, rgba(26, 26, 46, 0.3), rgba(16, 14, 43, 0.3)),
+    url('/assets/gym.png');
+  background-attachment: fixed, fixed;
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  color: var(--pp-text-light);
+  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.015em;
+  position: relative;
+}
+
+/* --- Navbar --- */
+.navbar {
+  background: linear-gradient(90deg, var(--pp-bg), #1d102e) !important;
+  border-bottom: 1px solid var(--pp-border);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.navbar-brand {
+  text-shadow: 0 0 15px rgba(74, 0, 224, 0.5) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px;
+  width: 100% !important;
+  display: block !important;
+  padding: 0 !important;
+}
+
+/* --- Card standard --- */
+.card {
+  background-color: rgba(22, 33, 62, var(--card-transparency));  /* 🎛️ Använder kontrollpanel-värde */
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+}
+
+.card:hover {
+  box-shadow: 0 8px 15px rgba(0,0,0,.3);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  background: linear-gradient(90deg, rgba(15, 52, 96, var(--header-transparency)), rgba(22, 57, 112, var(--header-transparency)));  /* 🎛️ Använder kontrollpanel-värde */
+  color: var(--pp-text-light);
+  font-weight: 600;
+  border-bottom: 1px solid var(--pp-border);
+  border-radius: 8px 8px 0 0 !important;
+  padding: 12px 20px;
+  letter-spacing: 0.5px;
+}
+
+.card-body { 
+  padding: 20px;
+}
+
+/* --- Tables (Dash) --- */
+.dash-table-container .dash-spreadsheet-inner table {
+  background: rgba(22, 33, 62, var(--card-transparency));  /* 🎛️ Använder kontrollpanel-värde */
+}
+
+.dash-table-container th {
+  background: linear-gradient(180deg, rgba(15, 52, 96, var(--header-transparency)), rgba(10, 40, 80, var(--header-transparency))) !important;  /* 🎛️ Använder kontrollpanel-värde */
+  color: var(--pp-text-light) !important;
+  font-weight: 600 !important;
+  padding: 10px !important;
+  border-bottom: 2px solid var(--pp-border) !important;
+  letter-spacing: 0.5px;
+}
+
+.dash-table-container td {
+  background: rgba(22, 33, 62, var(--card-transparency)) !important;  /* 🎛️ Använder kontrollpanel-värde */
+  color: var(--pp-text-light) !important;
+  border-color: rgba(77, 26, 105, 0.2) !important;
+  padding: 8px 12px !important;
+}
+
+.dash-table-container tr:nth-child(odd) td {
+  background: rgba(19, 28, 53, var(--card-transparency)) !important;  /* 🎛️ Använder kontrollpanel-värde */
+}
+
+.dash-table-container tr:hover td {
+  background: rgba(30, 42, 77, var(--hover-transparency)) !important;  /* 🎛️ Använder kontrollpanel-värde */
+}
+
+/* Active row highlight */
+.dash-table-container tr.dash-spreadsheet-container--selected * {
+  background-color: rgba(123, 44, 191, 0.3) !important;
+  box-shadow: inset 0 0 0 1px var(--pp-border);
+}
+
+/* --- Dropdown from react-select (Dash core) --- */
+.Select-control,
+.Select-menu-outer,
+.Select-option,
+.Select-value-label {
+  background: var(--pp-header) !important;
+  border-color: var(--pp-border) !important;
+  color: var(--pp-text-light) !important;
+}
+
+/* --- Graph container --- */
+.dash-graph { 
+  background: rgba(22, 33, 62, var(--card-transparency));  /* 🎛️ Använder kontrollpanel-värde */
+  border-radius: 8px; 
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* --- Positive/negative values --- */
+.positive-value { color: var(--pp-positive) !important; }
+.negative-value { color: var(--pp-negative) !important; }
+
+/* --- Scrollbar styling --- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--pp-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pp-accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pp-border);
+}
+
+/* --- Datuminmatningsfält --- */
+input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--pp-header) !important;
+  color: var(--pp-text-light) !important;
+  border: 1px solid var(--pp-border) !important;
+  border-radius: 5px !important;
+  padding: 8px 12px !important;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+input[type="date"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 0, 224, 0.4);
+  border-color: var(--pp-accent) !important;
+}
+
+/* --- Anti-fraud label högst upp på sidan --- */
+.label {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9999;
+
+  padding: .6rem 0;  /* Större padding */
+  text-align: center;
+  background: rgba(0,0,0,.45);  /* Mörkare bakgrund för bättre kontrast */
+  backdrop-filter: blur(8px);    /* Mer blur för tydligare effekt */
+
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .08em;         /* Mer letter-spacing */
+  user-select: none;
+  pointer-events: none;
+  border-bottom: 1px solid rgba(6, 234, 255, 0.3);  /* Subtil nedre kant */
+}
+
+.label .l1 {
+  display: block;
+  font-size: clamp(1rem, 2.5vw, 1.6rem);  /* Större font-storlek */
+  margin-bottom: 2px;
+}
+
+.label .l2 {
+  display: block;
+  font-size: clamp(1.2rem, 3.5vw, 2rem);  /* Större font-storlek */
+  font-weight: 600;  /* Extra tjockare text */
+}
+
+.label span {
+  color: #008fa4;
+  text-shadow:
+    0 0 6px  #06eaff,   /* Starkare glöd */
+    0 0 12px #06eaff,
+    0 0 18px #06eaff,
+    0 0 24px #06eaff;   /* Extra glöd-nivåer */
+  animation: labelColor 9s linear infinite;
+}
+
+/* Färgskifte för anti-fraud baren */
+@keyframes labelColor {
+  0%, 100% { color: #008fa4; }
+  25%      { color: #0d7efe; }
+  50%      { color: #ffffff; }
+  75%      { color: #00c8ff; }
+}
+
+/* Glitch-effekt när JS lägger till .glitch */
+.label.glitch span {
+  animation: labelColor 9s linear infinite,
+             labelGlitch 140ms steps(2,end) 4;  /* Lite längre glitch för bättre synlighet */
+}
+
+@keyframes labelGlitch {
+  0%   { clip-path: inset(0 0 80% 0); transform: translateX(-3px) skewX(3deg); }  /* Starkare glitch */
+  33%  { clip-path: inset(30% 0 50% 0); transform: translateX(3px); }
+  66%  { clip-path: inset(60% 0 20% 0); transform: translateX(-2px); }
+  100% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+}
+
+/* --- Förbättring för uppdateringsknappen - ingen suddighet --- */
+#manual-refresh {
+  filter: none !important;           /* Ta bort alla filter */
+  backdrop-filter: none !important;  /* Ta bort backdrop filter */
+  transform: none !important;        /* Ta bort transforms som kan orsaka subpixel rendering */
+  backface-visibility: hidden;       /* Säkerställ hårdvaruacceleration */
+  will-change: auto;                 /* Låt browsern optimera */
+  -webkit-font-smoothing: antialiased;  /* Förbättrad font-rendering */
+  -moz-osx-font-smoothing: grayscale;   /* Firefox font-rendering */
+  
+  /* Säkerställ tydliga färger */
+  background-color: #4a00e0 !important;
+  border-color: #4a00e0 !important;
+  color: #ffffff !important;
+  
+  /* Tydlig positionering - över anti-fraud baren */
+  position: relative;
+  z-index: 10000 !important;  /* Högre än anti-fraud baren (9999) */
+  
+  /* Förhindra text-blur */
+  text-shadow: none;
+  font-weight: 500;
+}
+
+#manual-refresh:hover {
+  background-color: #5d10f3 !important;
+  border-color: #5d10f3 !important;
+  transform: translateY(-1px) !important;  /* Minimal transform för hover-effekt */
+  box-shadow: 0 4px 12px rgba(74, 0, 224, 0.3) !important;
+  z-index: 10000 !important;  /* Behåll hög z-index vid hover */
+}
+
+#manual-refresh:focus,
+#manual-refresh:active {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(74, 0, 224, 0.4) !important;
+  z-index: 10000 !important;  /* Behåll hög z-index vid fokus */
+}
+
+/* Säkerställ att timertexten också är tydlig och över glaset */
+#next-update-timer {
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  z-index: 10000 !important;  /* Över anti-fraud baren */
+  position: relative;
+}
+
+/* Säkerställ att hela uppdateringsområdet är över glaset */
+.d-flex.justify-content-end.mb-3 {
+  position: relative;
+  z-index: 10000 !important;
+  margin-top: 15px !important;  /* Extra margin för säkerhet */
+}
+
+/* --- Ny chat-logga från new_loggo --- */
+/* Chat logo wrapper och animationer */
+#chat-logo-wrap {
+  position: relative;
+  width: 100px;  /* Ökat från 80px */
+  height: 100px;  /* Ökat från 80px */
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+/* Neon-glöd för chat-loggan */
+#chat-logo-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;  /* Cirkulär för chat-knapp */
+  background: #00eaff;
+  filter: blur(16px);  /* Lite mer blur för större knapp */
+  opacity: .25;
+  transition: opacity .4s;
+}
+
+#chat-logo-wrap:hover::before {
+  opacity: .6;
+}
+
+/* Flare-overlay för chat-loggan, triggas med .flare-klass via JS */
+#chat-logo-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#chat-logo-wrap.flare::after {
+  animation: chatFlareGlow 1s ease-out forwards;
+}
+
+/* Chat-logga själva SVG-objektet */
+#chat-logo {
+  width: 100%;
+  height: 100%;
+  animation: chatColorShift 9s linear infinite;
+  transition: transform .1s ease-out;
+  transform-style: preserve-3d;
+  border-radius: 50%;
+}
+
+/* Färgskifte för chat-loggan */
+@keyframes chatColorShift {
+  0%   { filter: hue-rotate(0deg)   saturate(120%) brightness(100%); }
+  33%  { filter: hue-rotate(260deg) saturate(120%) brightness(100%); }
+  66%  { filter: hue-rotate(260deg) saturate(0%)  brightness(240%); }
+  100% { filter: hue-rotate(0deg)   saturate(120%) brightness(100%); }
+}
+
+/* Flare-animation för chat-loggan */
+@keyframes chatFlareGlow {
+  0%   { box-shadow: 0 0 0   0   #ffb200; opacity: .8; }
+  50%  { box-shadow: 0 0 22px 6px #ffb200; opacity: 1; }
+  100% { box-shadow: 0 0 0   0   #ffb200; opacity: 0; }
+}
+
+/* Glitch-effekt för chat-loggan */
+@keyframes chatGlitchSlice {
+  0%   { clip-path: inset(0 0 0 0); }
+  33%  { clip-path: inset(30% 0 40% 0); transform: translateX(-2px); }
+  66%  { clip-path: inset(60% 0 10% 0); transform: translateX(2px); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+#chat-logo.glitch {
+  animation: chatGlitchSlice .4s steps(2,end);
+}
+
+/* Chat-knapp container styling */
+#chat-button {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  width: 100px !important;  /* Ökat från 80px */
+  height: 100px !important;  /* Ökat från 80px */
+  border-radius: 50% !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  z-index: 9999 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}

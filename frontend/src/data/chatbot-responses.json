@@ -1,0 +1,151 @@
+{
+  "playerStats": {
+    "patterns": [
+      "how many hands has {player} played",
+      "what is {player}'s vpip",
+      "show me {player}'s pfr",
+      "what's {player}'s win rate",
+      "is {player} a winning player"
+    ],
+    "responses": {
+      "hands": "🎯 **{player}** has played **{hands}** hands in our database. This represents {timeframe} of poker activity.",
+      "vpip": "📊 **{player}**'s VPIP is **{vpip}%**. This means they voluntarily put money in the pot {vpip}% of the time preflop. {analysis}",
+      "pfr": "🚀 **{player}**'s PFR is **{pfr}%**. They raise or re-raise preflop {pfr}% of the time. {analysis}",
+      "winRate": "💰 **{player}**'s win rate is **{winRate} BB/100**. {analysis}",
+      "isWinner": "🏆 **{player}** is {status} with a net win of **{netWin}** over {hands} hands."
+    },
+    "analysis": {
+      "vpip": {
+        "tight": "This indicates a tight playing style - they're selective with their hands.",
+        "loose": "This indicates a loose playing style - they play many hands.",
+        "optimal": "This is within the optimal range for most games."
+      },
+      "pfr": {
+        "passive": "This suggests a more passive approach to preflop play.",
+        "aggressive": "This indicates an aggressive preflop style.",
+        "balanced": "This shows a well-balanced preflop approach."
+      }
+    }
+  },
+  
+  "security": {
+    "patterns": [
+      "is {player} a bot",
+      "show me suspicious players",
+      "what's {player}'s bot likelihood",
+      "security analysis for {player}"
+    ],
+    "responses": {
+      "botCheck": "🔒 **Security Analysis for {player}**:\n• Bot Likelihood: **{botScore}%**\n• Risk Level: **{riskLevel}**\n• Status: **{status}**\n\n{analysis}",
+      "suspiciousPlayers": "⚠️ **Suspicious Players Found**: {count} players flagged\n\n{playerList}",
+      "securityOverview": "🛡️ **Security Status**: {status}\n• Active Alerts: {alerts}\n• Players Under Review: {underReview}\n• Bot Detection Accuracy: {accuracy}%"
+    }
+  },
+
+  "database": {
+    "patterns": [
+      "how many players in database",
+      "how many hands recorded",
+      "database statistics",
+      "system health"
+    ],
+    "responses": {
+      "playerCount": "👥 **Database contains {count} players** with varying activity levels:\n• Active (last 30 days): {active}\n• Regular players: {regular}\n• Recreational: {recreational}",
+      "handCount": "🎯 **Total hands recorded: {count}**\n• Today: {today}\n• This week: {week}\n• This month: {month}\n• Average per day: {avgPerDay}",
+      "systemHealth": "💚 **System Status: {status}**\n• Uptime: {uptime}\n• Response Time: {responseTime}ms\n• Database Size: {dbSize}\n• Last Update: {lastUpdate}"
+    }
+  },
+
+  "comparisons": {
+    "patterns": [
+      "compare {player1} vs {player2}",
+      "who are the best players",
+      "show me biggest winners",
+      "find tight players"
+    ],
+    "responses": {
+      "playerComparison": "⚔️ **{player1} vs {player2}**\n\n**{player1}**:\n• VPIP: {vpip1}% | PFR: {pfr1}%\n• Win Rate: {winRate1} BB/100\n• Hands: {hands1}\n\n**{player2}**:\n• VPIP: {vpip2}% | PFR: {pfr2}%\n• Win Rate: {winRate2} BB/100\n• Hands: {hands2}\n\n🏆 **Winner**: {winner}",
+      "topPlayers": "🏆 **Top Players by Win Rate**:\n\n{playerList}",
+      "biggestWinners": "💰 **Biggest Winners**:\n\n{winnerList}"
+    }
+  },
+
+  "gameAnalysis": {
+    "patterns": [
+      "show me {player}'s recent hands",
+      "what was {player}'s biggest pot",
+      "how often does {player} fold preflop",
+      "show me {player}'s 3-bet frequency"
+    ],
+    "responses": {
+      "recentHands": "🎴 **Recent hands for {player}**:\n\n{handsList}\n\n📊 **Recent Performance**: {performance}",
+      "biggestPot": "💎 **{player}'s biggest pot**: **{amount}**\n• Hand: {hand}\n• Date: {date}\n• Opponent(s): {opponents}",
+      "foldFrequency": "📉 **{player}** folds preflop **{percentage}%** of the time\n• This is {analysis}\n• Compared to average: {comparison}"
+    }
+  },
+
+  "aiAnalysis": {
+    "patterns": [
+      "what's {player}'s ai score",
+      "how is ai score calculated",
+      "show me ai recommendations for {player}",
+      "what should {player} improve"
+    ],
+    "responses": {
+      "aiScore": "🤖 **AI Analysis for {player}**:\n• Overall Score: **{score}/100**\n• Preflop: {preflopScore}\n• Postflop: {postflopScore}\n• Skill Level: **{skillLevel}**\n\n{recommendations}",
+      "aiCalculation": "🧮 **AI Score Calculation**:\n• Hand selection (30%)\n• Betting patterns (25%)\n• Position awareness (20%)\n• Opponent adaptation (15%)\n• Bankroll management (10%)",
+      "recommendations": "💡 **AI Recommendations for {player}**:\n\n{recommendationList}"
+    }
+  },
+
+  "help": {
+    "patterns": [
+      "what is vpip",
+      "explain pfr",
+      "what's a good win rate",
+      "how do you calculate roi",
+      "help me understand the charts"
+    ],
+    "responses": {
+      "vpip": "📚 **VPIP (Voluntarily Put $ In Pot)**:\n• Percentage of hands where a player voluntarily puts money in the pot preflop\n• Excludes big blind when not raised\n• Typical ranges:\n  - Tight: 15-22%\n  - Normal: 23-27%\n  - Loose: 28%+",
+      "pfr": "📚 **PFR (Preflop Raise)**:\n• Percentage of hands where a player raises preflop\n• Good indicator of aggression\n• Typical ranges:\n  - Passive: 8-15%\n  - Balanced: 16-22%\n  - Aggressive: 23%+",
+      "winRate": "📚 **Win Rate**:\n• Measured in BB/100 (big blinds per 100 hands)\n• Positive = winning player\n• Typical ranges:\n  - Excellent: 5+ BB/100\n  - Good: 2-5 BB/100\n  - Break-even: -1 to 1 BB/100\n  - Losing: Below -1 BB/100"
+    }
+  },
+
+  "quickResponses": {
+    "greeting": [
+      "👋 Hi! I'm your poker analytics assistant. Ask me about player stats, security analysis, or database information!",
+      "🎯 Hello! I can help you analyze players, check security risks, or explain poker metrics. What would you like to know?",
+      "🤖 Welcome! I have access to comprehensive poker data. Try asking about specific players or general statistics!"
+    ],
+    "unknown": [
+      "🤔 I'm not sure about that. Try asking about player statistics, security analysis, or database information.",
+      "❓ I didn't understand that query. You can ask me about VPIP, PFR, win rates, or specific players.",
+      "💭 Could you rephrase that? I'm great with questions about poker stats, player analysis, and security checks."
+    ],
+    "error": [
+      "⚠️ I encountered an error processing that request. Please try again or ask something else.",
+      "🔧 Something went wrong. The database might be busy. Please try your query again.",
+      "❌ I couldn't process that request right now. Please try a different question."
+    ]
+  },
+
+  "actionPrompts": {
+    "playerNotFound": "🔍 Player '{player}' not found. Would you like me to:\n• Search for similar names\n• Show you a list of active players\n• Help you with the correct spelling?",
+    "insufficientData": "📊 {player} has limited data ({hands} hands). For more accurate analysis, we recommend:\n• Waiting for more hands to be played\n• Checking back in a few days\n• Looking at available basic stats",
+    "securityFlag": "🚨 {player} has been flagged for review. Would you like me to:\n• Show detailed security analysis\n• Display risk factors\n• Generate a security report?",
+    "dataExport": "📁 Would you like me to:\n• Generate a detailed report for {player}\n• Export the data to CSV\n• Create a comparison chart\n• Schedule regular updates?"
+  },
+
+  "contextualHelp": {
+    "firstTime": "🎓 **New to poker analytics?** Here are some great starting questions:\n• 'What is VPIP?'\n• 'Show me the best players'\n• 'How many players are in the database?'\n• 'What's a good win rate?'",
+    "advanced": "🔬 **Advanced Analysis Available**:\n• Player comparisons\n• Security risk assessment\n• AI-powered insights\n• Time-based performance patterns\n• Bankroll management analysis",
+    "tips": [
+      "💡 **Tip**: Use player names in quotes for exact matches: 'Show me \"PlayerName\"'s stats'",
+      "🎯 **Tip**: Ask for comparisons: 'Compare Player1 vs Player2'",
+      "🔍 **Tip**: Filter by criteria: 'Show me players with VPIP over 30%'",
+      "📊 **Tip**: Request specific timeframes: 'Show me this month's winners'"
+    ]
+  }
+} 
